@@ -3,92 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sổ Chi Tiêu Nhóm 9 - Loại Trừ</title>
+    <title>DX Solution Showcase - Giải Pháp Chuyển Đổi Số Doanh Nghiệp</title>
     <style>
-        body { font-family: sans-serif; background-color: #0d1117; color: white; padding: 10px; text-align: center; }
-        .container { max-width: 500px; margin: auto; background: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
-        input, select { width: 90%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; }
-        button { width: 95%; padding: 12px; background: #238636; color: white; border: none; border-radius: 8px; font-weight: bold; margin: 10px 0; cursor: pointer; }
-        .member-select { text-align: left; background: #0d1117; padding: 10px; border-radius: 8px; margin: 10px 0; display: grid; grid-template-columns: 1fr 1fr; }
-        .member-select label { font-size: 14px; margin: 5px 0; display: flex; align-items: center; }
-        .summary { background: #21262d; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 5px solid #58a6ff; text-align: left; }
-        .history { text-align: left; margin-top: 20px; font-size: 13px; max-height: 200px; overflow-y: auto; background: #0d1117; padding: 10px; border-radius: 5px; }
-        .item { border-bottom: 1px solid #30363d; padding: 8px 0; font-size: 12px; }
-        .debt-list { margin-top: 10px; color: #ff7b72; font-size: 14px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; color: #f0f4f8; margin: 0; padding: 0; line-height: 1.6; }
+        .container { max-width: 1000px; margin: auto; padding: 20px; }
+        header { padding: 40px 0; text-align: center; border-bottom: 1px solid #1e293b; }
+        header h1 { color: #38bdf8; font-size: 32px; margin: 0 0 10px 0; font-weight: 700; }
+        header p { color: #94a3b8; font-size: 16px; margin: 0; }
+        .grid-section { display: grid; grid-template-columns: 1fr; gap: 25px; margin: 40px 0; }
+        @media(min-width: 600px) { .grid-section { grid-template-columns: 1fr 1fr; } }
+        .box { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 25px; }
+        .box h3 { margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+        .pain-box h3 { color: #f87171; }
+        .sale-box h3 { color: #4ade80; }
+        .box ul { padding-left: 20px; margin: 0; color: #cbd5e1; }
+        .box li { margin-bottom: 10px; }
+        .showcase-title { text-align: left; color: #38bdf8; font-size: 24px; border-left: 4px solid #38bdf8; padding-left: 10px; margin-bottom: 25px; }
+        .project-card { background: #1e293b; border-radius: 12px; overflow: hidden; margin-bottom: 30px; border: 1px solid #334155; }
+        .project-img { background: linear-gradient(135deg, #0f172a, #1e293b); height: 180px; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold; border-bottom: 1px solid #334155; text-align: center; padding: 10px; }
+        .project-info { padding: 25px; }
+        .project-info h4 { margin: 0 0 10px 0; color: #f1f5f9; font-size: 22px; }
+        .project-info p { color: #94a3b8; margin: 0 0 15px 0; font-size: 15px; }
+        .tag { background: #0369a1; color: #e0f2fe; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; margin-right: 5px; margin-bottom: 5px; }
+        footer { text-align: center; padding: 40px 0; border-top: 1px solid #1e293b; color: #64748b; font-size: 14px; }
+        .btn-contact { background: #0284c7; color: white; padding: 12px 30px; font-weight: bold; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <h3>CHI TIÊU NHÓM 9 NGƯỜI</h3>
     <div class="container">
-        <input type="text" id="desc" placeholder="Mua món gì?">
-        <input type="number" id="money" placeholder="Số tiền (VNĐ)">
-        <select id="payer"><option id="p-opt"></option></select>
-        
-        <p style="font-size: 12px; color: #8b949e; margin-bottom: 5px;">Ai cùng tham gia món này? (Tích chọn)</p>
-        <div class="member-select" id="checkbox-list"></div>
-        
-        <button onclick="addEntry()">GHI VÀO SỔ</button>
-
-        <div class="summary">
-            <div id="status">Chưa có dữ liệu</div>
-            <div id="debtResult" class="debt-list"></div>
+        <header>
+            <h1>DX ENTERPRISE SHOWCASE</h1>
+            <p>Hệ thống số hóa quy trình và tối ưu hóa hiệu suất vận hành toàn diện cho doanh nghiệp</p>
+        </header>
+        <div class="grid-section">
+            <div class="box pain-box">
+                <h3>⚠️ Nỗi Đau Doanh Nghiệp (Painpoints)</h3>
+                <ul>
+                    <li>Dữ liệu rời rạc, quản lý thủ công bằng Excel dễ thất thoát.</li>
+                    <li>Sự phối hợp giữa các phòng ban chậm chạp, thiếu tính liên kết.</li>
+                    <li>Báo cáo chậm, không có số liệu thời gian thực để ra quyết định.</li>
+                </ul>
+            </div>
+            <div class="box sale-box">
+                <h3>🎯 Điểm Nhấn Giải Pháp (Salepoints)</h3>
+                <ul>
+                    <li>Tích hợp toàn diện trên một nền tảng duy nhất chuẩn SAP/Odoo.</li>
+                    <li>Tự động hóa 80% quy trình phê duyệt và luân chuyển chứng từ.</li>
+                    <li>Hệ thống báo cáo thông minh (Dashboard) cập nhật từng giây.</li>
+                </ul>
+            </div>
         </div>
-
-        <div class="history" id="historyList"></div>
-        <button onclick="clearData()" style="background: #da3633; width: auto; font-size: 12px;">XÓA HẾT</button>
+        <h3 class="showcase-title">Dự Án Triển Khai Tiêu Biểu</h3>
+        <div class="project-card">
+            <div class="project-img">
+                <span style="color: #38bdf8; font-size: 18px;">[ Giao Diện Quản Trị Hệ Thống CRM & ERP ]</span>
+            </div>
+            <div class="project-info">
+                <h4>Hệ Thống Quản Trị Chuỗi Cung Ứng Toàn Diện</h4>
+                <p>Số hóa toàn bộ quy trình nhập kho, kiểm kho và phân phối hàng hóa. Tối ưu hóa UI/UX giúp nhân viên kho thao tác nhanh hơn 45% trên thiết bị di động.</p>
+                <div>
+                    <span class="tag">UI/UX Tối Giản</span>
+                    <span class="tag">Odoo Custom</span>
+                    <span class="tag">Animation Mượt</span>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <p>Hệ thống giao diện được tối ưu trải nghiệm trực quan, không rườm rà.</p>
+            <a href="mailto:thanh@tanoshivietnam.com" class="btn-contact">LIÊN HỆ KHẢO SÁT GIẢI PHÁP</a>
+            <p style="margin-top: 25px;">© 2026 Được triển khai bởi Freelancer Đức Hội</p>
+        </footer>
     </div>
-
-    <script>
-        const members = ["Hội", "La Huệ", "Phạm Huệ", "Huy Hoàng", "Thân Hiển", "Hiếu", "Huy PG", "Đình Huy", "Đắc Huy"];
-        let data = JSON.parse(localStorage.getItem('group9_smart_data')) || [];
-
-        function init() {
-            const cbList = document.getElementById('checkbox-list');
-            const payerSelect = document.getElementById('payer');
-            payerSelect.innerHTML = members.map(m => `<option value="${m}">${m} chi tiền</option>`).join('');
-            cbList.innerHTML = members.map(m => `<label><input type="checkbox" class="participant" value="${m}" checked> ${m}</label>`).join('');
-            updateUI();
-        }
-
-        function updateUI() {
-            const list = document.getElementById('historyList');
-            const debtResult = document.getElementById('debtResult');
-            list.innerHTML = "";
-            let totals = {}; let shares = {};
-            members.forEach(m => { totals[m] = 0; shares[m] = 0; });
-
-            data.forEach((item) => {
-                totals[item.payer] += item.price;
-                let perPerson = item.price / item.who.length;
-                item.who.forEach(m => shares[m] += perPerson);
-                list.innerHTML += `<div class="item"><b>${item.payer}</b> chi ${item.price.toLocaleString()}đ cho: ${item.who.join(', ')}</div>`;
-            });
-
-            let debtHTML = "<b>Số tiền thực tế (Chi - Phải đóng):</b><br>";
-            members.forEach(m => {
-                let diff = totals[m] - shares[m];
-                if (diff > 0) debtHTML += `<div>• ${m}: Nhận lại <b>${Math.round(diff).toLocaleString()}đ</b></div>`;
-                else if (diff < 0) debtHTML += `<div>• ${m}: Đóng thêm <b>${Math.round(Math.abs(diff)).toLocaleString()}đ</b></div>`;
-            });
-            debtResult.innerHTML = data.length > 0 ? debtHTML : "";
-            localStorage.setItem('group9_smart_data', JSON.stringify(data));
-        }
-
-        function addEntry() {
-            const desc = document.getElementById('desc').value;
-            const money = parseInt(document.getElementById('money').value);
-            const payer = document.getElementById('payer').value;
-            const selected = Array.from(document.querySelectorAll('.participant:checked')).map(cb => cb.value);
-
-            if (desc && money > 0 && selected.length > 0) {
-                data.push({ desc, price: money, payer, who: selected });
-                document.getElementById('desc').value = ""; document.getElementById('money').value = "";
-                updateUI();
-            } else { alert("Nhập đủ tiền và chọn ít nhất 1 người ăn nhé!"); }
-        }
-
-        function clearData() { if(confirm("Xóa sạch sổ?")) { data = []; updateUI(); } }
-        init();
-    </script>
 </body>
 </html>
