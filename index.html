@@ -3,67 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sopcare - Ultra Filters Activated</title>
+    <title>Sopcare - Professional Camera Stream</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', Arial, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #0c0c0c; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         .camera-container { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Tiêu đề Neon phát sáng rực rỡ như hình mẫu */
-        .status-header { position: absolute; top: 15px; width: 100%; text-align: center; color: #00ffcc; font-weight: 900; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 10px #00ffcc, 0 0 20px #00a8ff; }
-        .sub-header { position: absolute; top: 38px; width: 100%; text-align: center; color: #ff007f; font-weight: bold; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 5px #ff007f; }
+        /* Giao diện tối giản chuẩn Leica/Fujifilm */
+        .status-header { position: absolute; top: 15px; width: 100%; text-align: center; color: #ffffff; font-weight: 600; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; z-index: 10; opacity: 0.9; }
+        .sub-header { position: absolute; top: 35px; width: 100%; text-align: center; color: #aaa; font-weight: normal; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; z-index: 10; }
 
-        /* Lưới căn góc */
+        /* Lớp hiển thị lưới bố cục chuyên nghiệp */
         .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 3; }
         .active { display: block; }
-        .line { position: absolute; background-color: rgba(0, 255, 255, 0.4); box-shadow: 0 0 5px rgba(0, 255, 255, 0.6); }
+        .line { position: absolute; background-color: rgba(255, 255, 255, 0.4); border-radius: 1px; }
 
-        /* Các đường lưới phát sáng nhẹ cyan nghệ thuật */
-        .spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; filter: drop-shadow(0px 0px 3px rgba(0,255,204,0.6)); }
-        .grid-v1, .grid-v2 { width: 1.5px; height: 100%; top: 0; } .grid-v1 { left: 33.33%; } .grid-v2 { left: 66.66%; }
-        .grid-h1, .grid-h2 { height: 1.5px; width: 100%; left: 0; } .grid-h1 { top: 33.33%; } .grid-h2 { top: 66.66%; }
-        .frame-outer { position: absolute; top: 15%; left: 10%; width: 80%; height: 55%; border: 1.5px solid rgba(0, 255, 255, 0.5); }
-        .frame-inner { position: absolute; top: 70%; left: 44%; width: 12%; height: 15%; border: 1.5px solid rgba(255, 0, 127, 0.6); }
-        .triangle-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        /* Các đường lưới mảnh tinh tế không làm rối mắt */
+        .spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.6; }
+        .grid-v1, .grid-v2 { width: 1px; height: 100%; top: 0; } .grid-v1 { left: 33.33%; } .grid-v2 { left: 66.66%; }
+        .grid-h1, .grid-h2 { height: 1px; width: 100%; left: 0; } .grid-h1 { top: 33.33%; } .grid-h2 { top: 66.66%; }
+        .frame-outer { position: absolute; top: 12%; left: 10%; width: 80%; height: 60%; border: 1px solid rgba(255, 255, 255, 0.4); }
+        .frame-inner { position: absolute; top: 72%; left: 45%; width: 10%; height: 12%; border: 1px solid rgba(255, 255, 255, 0.5); }
+        .triangle-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.5; }
 
-        /* Panel điều khiển camera bên dưới */
-        .controls-panel { position: absolute; bottom: 0; width: 100%; height: 135px; background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.75)); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 12px; z-index: 10; border-top: 1px solid rgba(255,255,255,0.05); }
+        /* Thanh điều khiển tối giản */
+        .controls-panel { position: absolute; bottom: 0; width: 100%; height: 130px; background: rgba(12, 12, 12, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 12px; z-index: 10; border-top: 1px solid rgba(255,255,255,0.08); }
         .mode-selector { width: 100%; display: flex; justify-content: flex-start; gap: 8px; overflow-x: auto; padding: 6px 15px; scrollbar-width: none; }
         .mode-selector::-webkit-scrollbar { display: none; }
-        .mode-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #ccc; padding: 7px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; text-transform: uppercase; white-space: nowrap; font-weight: bold; }
-        .mode-btn.selected { background: #00ffcc; color: #000; font-weight: 900; border-color: #00ffcc; box-shadow: 0 0 12px rgba(0,255,204,0.6); }
+        .mode-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #999; padding: 6px 14px; border-radius: 4px; font-size: 11px; cursor: pointer; text-transform: uppercase; white-space: nowrap; font-weight: 500; transition: all 0.2s; }
+        .mode-btn.selected { background: #ffffff; color: #000000; font-weight: bold; border-color: #ffffff; }
 
         .action-area { width: 100%; display: flex; justify-content: space-around; align-items: center; padding: 0 20px; }
-        .footer-text { color: #ff007f; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 0 0 5px #ff007f; }
-        .shutter-btn { width: 62px; height: 62px; border-radius: 50%; background-color: #ffeb3b; border: 5px solid rgba(255, 235, 59, 0.3); cursor: pointer; box-shadow: 0 0 15px rgba(255,235,59,0.5); font-weight: bold; font-size: 11px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; color: #000; }
-
-        /* GIAO DIỆN CHỈNH 10 SIÊU BỘ LỌC SAU KHI BẤM CHỤP */
-        .preview-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #020202; z-index: 20; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px 0; }
-        .preview-box { width: 100%; height: 56%; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; background: #090909; }
+        .footer-text { color: #ffffff; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; }
         
-        /* Khung chứa ảnh và lớp màu ảo chập đôi */
-        .image-wrapper { position: relative; max-width: 90%; max-height: 100%; display: flex; justify-content: center; align-items: center; border-radius: 16px; overflow: hidden; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.9); }
-        #previewImage { width: 100%; height: 100%; object-fit: contain; transition: filter 0.15s ease; }
-        .gradient-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: overlay; }
+        /* Nút chụp tối giản kiểu máy ảnh cơ */
+        .shutter-btn { width: 60px; height: 60px; border-radius: 50%; background-color: #ffffff; border: 4px solid rgba(12, 12, 12, 0.8); box-shadow: 0 0 0 3px #ffffff; cursor: pointer; transition: transform 0.1s ease; }
+        .shutter-btn:active { transform: scale(0.9); }
 
-        /* Thanh cuộn 10 bộ lọc cực ngầu */
-        .filter-bar { width: 100%; display: flex; gap: 12px; overflow-x: auto; padding: 15px; background: #0c0c0c; border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a; scrollbar-width: none; }
+        /* MÀN HÌNH PREVIEW CHỌN FILTER PRO */
+        .preview-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0c0c0c; z-index: 20; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px 0; }
+        .preview-box { width: 100%; height: 56%; display: flex; justify-content: center; align-items: center; position: relative; background: #050505; }
+        
+        .image-wrapper { position: relative; max-width: 92%; max-height: 100%; display: flex; justify-content: center; align-items: center; border-radius: 8px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+        #previewImage { width: 100%; height: 100%; object-fit: contain; }
+        .gradient-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        /* Thanh cuộn 10 bộ lọc chuyên nghiệp */
+        .filter-bar { width: 100%; display: flex; gap: 10px; overflow-x: auto; padding: 15px; background: #121212; border-top: 1px solid #1e1e1e; border-bottom: 1px solid #1e1e1e; scrollbar-width: none; }
         .filter-bar::-webkit-scrollbar { display: none; }
         .filter-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 78px; cursor: pointer; }
-        .filter-thumb { width: 56px; height: 56px; border-radius: 12px; border: 2px solid #252525; overflow: hidden; transition: all 0.2s; background: #151515; }
-        .filter-item.active .filter-thumb { border-color: #00ffcc; box-shadow: 0 0 12px #00ffcc; transform: scale(1.05); }
-        .filter-name { color: #777; font-size: 10px; text-align: center; white-space: nowrap; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-        .filter-item.active .filter-name { color: #00ffcc; text-shadow: 0 0 5px rgba(0,255,204,0.5); }
+        .filter-thumb { width: 54px; height: 54px; border-radius: 4px; border: 1px solid #2a2a2a; overflow: hidden; transition: all 0.2s; background: #222; }
+        .filter-item.active .filter-thumb { border-color: #ffffff; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+        .filter-name { color: #666; font-size: 10px; text-align: center; white-space: nowrap; font-weight: 500; }
+        .filter-item.active .filter-name { color: #ffffff; font-weight: bold; }
 
-        /* Nút lưu ảnh */
+        /* Nút tác vụ dưới màn hình Preview */
         .bottom-actions { width: 100%; display: flex; justify-content: center; gap: 15px; padding: 5px 20px; }
-        .action-btn { padding: 12px 30px; border-radius: 25px; font-weight: 800; font-size: 13px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-cancel { background: #161616; color: #888; border: 1px solid #252525; }
-        .btn-download { background: linear-gradient(90deg, #ff007f, #7f00ff); color: #fff; box-shadow: 0 0 15px rgba(255,0,127,0.4); }
+        .action-btn { padding: 12px 28px; border-radius: 4px; font-weight: 600; font-size: 12px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-cancel { background: #222; color: #aaa; border: 1px solid #333; }
+        .btn-download { background: #ffffff; color: #000000; }
 
-        .loading-toast { display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: #00ffcc; padding: 15px 30px; border-radius: 30px; font-weight: bold; font-size: 13px; z-index: 40; border: 1px solid #00ffcc; letter-spacing: 1px; text-align: center; }
+        .loading-toast { display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #fff; padding: 12px 24px; border-radius: 4px; font-size: 12px; z-index: 40; border: 1px solid #333; letter-spacing: 1px; text-align: center; }
 
         canvas { display: none; }
     </style>
@@ -72,40 +74,40 @@
 
     <div class="camera-container" id="cameraView">
         <video id="video" autoplay playsinline></video>
-        <div class="status-header">SOPCARE</div>
-        <div class="sub-header">ULTRA-FILTERS ACTIVATED</div>
+        <div class="status-header">SOPCARE PRO</div>
+        <div class="sub-header">PRO-FILTERS MODE</div>
 
         <div id="layout-spiral" class="overlay-layer active">
             <svg class="spiral-svg" viewBox="0 0 1000 1000">
-                <path d="M500,500 m -300, 0 a 300,300 0 1,0 600,0 a 300,300 0 1,0 -600,0 M500,500 m -220, 0 a 220,220 0 1,0 440,0 a 220,220 0 1,0 -440,0 M500,500 m -140, 0 a 140,140 0 1,0 280,0 a 140,140 0 1,0 -280,0 M500,500 m -60, 0 a 60,60 0 1,0 120,0 a 60,60 0 1,0 -120,0" fill="none" stroke="rgba(0,255,204,0.6)" stroke-width="2.5"/>
+                <path d="M500,500 m -300, 0 a 300,300 0 1,0 600,0 a 300,300 0 1,0 -600,0 M500,500 m -220, 0 a 220,220 0 1,0 440,0 a 220,220 0 1,0 -440,0 M500,500 m -140, 0 a 140,140 0 1,0 280,0 a 140,140 0 1,0 -280,0 M500,500 m -60, 0 a 60,60 0 1,0 120,0 a 60,60 0 1,0 -120,0" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
             </svg>
         </div>
         <div id="layout-grid" class="overlay-layer"><div class="line grid-v1"></div><div class="line grid-v2"></div><div class="line grid-h1"></div><div class="line grid-h2"></div></div>
         <div id="layout-framing" class="overlay-layer"><div class="frame-outer"></div><div class="frame-inner"></div></div>
         <div id="layout-triangle" class="overlay-layer">
-            <svg class="triangle-svg"><polygon points="50%,35% 8%,75% 92%,75%" fill="none" stroke="rgba(0,255,204,0.6)" stroke-width="2.5"/></svg>
+            <svg class="triangle-svg"><polygon points="50%,32% 10%,75% 90%,75%" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/></svg>
         </div>
 
         <div class="controls-panel">
             <div class="mode-selector">
                 <button class="mode-btn selected" onclick="changeLayout('spiral', this)">Ốc Sên</button>
                 <button class="mode-btn" onclick="changeLayout('grid', this)">Lưới 1/3</button>
-                <button class="mode-btn" onclick="changeLayout('framing', this)">Khung Hình</button>
+                <button class="mode-btn" onclick="changeLayout('framing', this)">Khung Ảnh</button>
                 <button class="mode-btn" onclick="changeLayout('triangle', this)">Tam Giác</button>
             </div>
             <div class="action-area">
-                <div class="footer-text">10 BỘ LỌC SIÊU XỊN</div>
-                <button class="shutter-btn" onclick="takePhoto()">Chụp</button>
+                <div class="footer-text">RAW CAPTURE</div>
+                <button class="shutter-btn" onclick="takePhoto()"></button>
             </div>
         </div>
     </div>
 
     <div class="preview-container" id="previewView">
-        <div class="status-header" style="color: #ff007f; text-shadow: 0 0 10px #ff007f;">FILTER SELECTION</div>
+        <div class="status-header">DEVELOPING DIALOG</div>
         
         <div class="preview-box">
             <div class="image-wrapper">
-                <img id="previewImage" alt="Preview ảnh chụp">
+                <img id="previewImage" alt="Preview">
                 <div class="gradient-overlay" id="gradientOverlay"></div>
             </div>
         </div>
@@ -114,11 +116,11 @@
 
         <div class="bottom-actions">
             <button class="action-btn btn-cancel" onclick="cancelPreview()">Chụp lại</button>
-            <button class="action-btn btn-download" onclick="downloadFinalImage()">Lưu Về Máy</button>
+            <button class="action-btn btn-download" onclick="downloadFinalImage()">Xuất Ảnh (Save)</button>
         </div>
     </div>
 
-    <div id="loadingToast" class="loading-toast">🛸 ĐANG ÉP MÀU SIÊU CẤP...</div>
+    <div id="loadingToast" class="loading-toast">PROCESSING IMAGES...</div>
     <canvas id="canvas"></canvas>
 
     <script>
@@ -134,18 +136,18 @@
         let originalImageDataUrl = '';
         let selectedFilterId = 'normal';
 
-        // DANH SÁCH 10 BỘ LỌC SIÊU ẢO - CHỤP XẤU CŨNG ĐẸP
+        // 10 BỘ LỌC CHUẨN MÁY ẢNH CHUYÊN NGHIỆP CAO CẤP
         const filtersConfig = [
-            { id: 'normal', name: 'Màu Gốc', filterCSS: 'none', blend: 'none', gradStyle: '' },
-            { id: 'cyber-pink', name: '🔮 Cyber Dream', filterCSS: 'contrast(130%) saturate(155%) brightness(102%) hue-rotate(-15deg)', blend: 'overlay', gradStyle: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 100%)' },
-            { id: 'sunset-chill', name: '🌅 Sunset Chill', filterCSS: 'contrast(120%) saturate(145%) brightness(104%)', blend: 'overlay', gradStyle: 'linear-gradient(45deg, #ff4500 0%, #ff00a0 50%, #7f00ff 100%)' },
-            { id: 'neon-glow', name: '🧪 Neon Glow', filterCSS: 'contrast(135%) saturate(160%) hue-rotate(45deg) brightness(98%)', blend: 'color-burn', gradStyle: 'linear-gradient(to top, rgba(0,255,128,0.2), transparent)' },
-            { id: 'korean-glow', name: '👱🏻‍♀️ Da Thiên Thần', filterCSS: 'brightness(114%) contrast(92%) saturate(108%) sepia(8%)', blend: 'overlay', gradStyle: 'linear-gradient(to bottom, rgba(255,200,200,0.2), transparent)' },
-            { id: 'foodie-forest', name: '🍃 Siêu Cây Cối', filterCSS: 'contrast(112%) saturate(180%) hue-rotate(12deg) brightness(103%)', blend: 'none', gradStyle: '' },
-            { id: 'vintage-cinema', name: '🎞 Cine Vintage', filterCSS: 'contrast(115%) sepia(25%) saturate(110%) brightness(95%) hue-rotate(-8deg)', blend: 'multiply', gradStyle: 'linear-gradient(rgba(0,0,50,0.05), rgba(50,30,0,0.05))' },
-            { id: 'aqua-marine', name: '💎 Xanh Ngọc', filterCSS: 'contrast(118%) saturate(125%) hue-rotate(140deg) brightness(102%)', blend: 'overlay', gradStyle: 'linear-gradient(to right, rgba(0,255,255,0.15), transparent)' },
-            { id: 'golden-hour', name: '💛 Giờ Vàng', filterCSS: 'contrast(110%) saturate(130%) brightness(105%) sepia(30%)', blend: 'overlay', gradStyle: 'linear-gradient(135deg, rgba(255,165,0,0.25), transparent)' },
-            { id: 'noir-art', name: '🖤 Film Noir Art', filterCSS: 'grayscale(100%) contrast(165%) brightness(90%)', blend: 'none', gradStyle: '' }
+            { id: 'normal', name: 'ORIGINAL', filterCSS: 'none', blend: 'none', gradStyle: '' },
+            { id: 'fuji-classic', name: '🎞 Fuji Chrome', filterCSS: 'contrast(106%) saturate(112%) brightness(98%) sepia(4%)', blend: 'multiply', gradStyle: 'linear-gradient(to bottom, rgba(0,30,10,0.03), rgba(20,10,0,0.02))' },
+            { id: 'leica-mood', name: '🔴 Leica M', filterCSS: 'contrast(122%) saturate(94%) brightness(96%)', blend: 'none', gradStyle: '' },
+            { id: 'vsco-clean', name: '✨ Trong Trẻo', filterCSS: 'brightness(105%) contrast(102%) saturate(108%)', blend: 'none', gradStyle: '' },
+            { id: 'fuji-c200', name: '🍃 Fuji C200', filterCSS: 'contrast(98%) saturate(125%) hue-rotate(6deg) brightness(101%)', blend: 'none', gradStyle: '' },
+            { id: 'warm-portrait', name: '📸 Portrait Tone', filterCSS: 'brightness(103%) contrast(96%) saturate(104%) sepia(8%)', blend: 'soft-light', gradStyle: 'linear-gradient(rgba(255,200,150,0.08), transparent)' },
+            { id: 'vintage-gold', name: '🍂 Vintage Gold', filterCSS: 'contrast(95%) sepia(28%) saturate(105%) brightness(98%)', blend: 'none', gradStyle: '' },
+            { id: 'kodak-portra', name: '🎞 Portra 400', filterCSS: 'contrast(104%) saturate(110%) brightness(102%) hue-rotate(-3deg)', blend: 'none', gradStyle: '' },
+            { id: 'urban-cool', name: '🏙 Urban Cool', filterCSS: 'contrast(114%) saturate(95%) hue-rotate(-8deg) brightness(97%)', blend: 'overlay', gradStyle: 'linear-gradient(rgba(0,100,255,0.05), transparent)' },
+            { id: 'leica-bw', name: '🖤 Leica B&W', filterCSS: 'grayscale(100%) contrast(135%) brightness(94%)', blend: 'none', gradStyle: '' }
         ];
 
         async function initCam() {
@@ -177,7 +179,7 @@
                 if(f.gradStyle) {
                     thumbStyle += `background: ${f.gradStyle};`;
                 } else {
-                    thumbStyle += `background: linear-gradient(to bottom, #444, #111);`;
+                    thumbStyle += `background: #252525;`;
                 }
 
                 item.innerHTML = `
@@ -237,39 +239,21 @@
                 
                 const currentFilter = filtersConfig.find(f => f.id === selectedFilterId);
                 
-                // Ép lớp filter đồ họa nền
                 ctx.filter = currentFilter.filterCSS;
                 ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
                 
-                // Ép chặt lớp màu gradient lồng ghép phức tạp
                 if(currentFilter.gradStyle) {
                     ctx.globalCompositeOperation = currentFilter.blend === 'none' ? 'source-over' : currentFilter.blend;
                     let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
                     
-                    if(currentFilter.id === 'cyber-pink') {
-                        gradient.addColorStop(0, "#00ffff");
-                        gradient.addColorStop(1, "#ff00ff");
-                    } else if(currentFilter.id === 'sunset-chill') {
-                        gradient.addColorStop(0, "#ff4500");
-                        gradient.addColorStop(0.5, "#ff00a0");
-                        gradient.addColorStop(1, "#7f00ff");
-                    } else if(currentFilter.id === 'neon-glow') {
-                        gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-                        gradient.addColorStop(0, "rgba(0,255,128,0.25)");
+                    if(currentFilter.id === 'fuji-classic') {
+                        gradient.addColorStop(0, "rgba(0,30,10,0.03)");
+                        gradient.addColorStop(1, "rgba(20,10,0,0.02)");
+                    } else if(currentFilter.id === 'warm-portrait') {
+                        gradient.addColorStop(0, "rgba(255,200,150,0.08)");
                         gradient.addColorStop(1, "transparent");
-                    } else if(currentFilter.id === 'korean-glow') {
-                        gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                        gradient.addColorStop(0, "rgba(255,200,200,0.25)");
-                        gradient.addColorStop(1, "transparent");
-                    } else if(currentFilter.id === 'vintage-cinema') {
-                        gradient.addColorStop(0, "rgba(0,0,50,0.06)");
-                        gradient.addColorStop(1, "rgba(50,30,0,0.06)");
-                    } else if(currentFilter.id === 'aqua-marine') {
-                        gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-                        gradient.addColorStop(0, "rgba(0,255,255,0.2)");
-                        gradient.addColorStop(1, "transparent");
-                    } else if(currentFilter.id === 'golden-hour') {
-                        gradient.addColorStop(0, "rgba(255,165,0,0.3)");
+                    } else if(currentFilter.id === 'urban-cool') {
+                        gradient.addColorStop(0, "rgba(0,100,255,0.05)");
                         gradient.addColorStop(1, "transparent");
                     }
                     
@@ -277,7 +261,6 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                // Reset bộ dựng hình
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.filter = "none";
                 
@@ -285,7 +268,7 @@
                     const fileUrl = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = fileUrl;
-                    link.download = `Sopcare_Ultra_${currentFilter.id}_${new Date().getTime()}.png`;
+                    link.download = `Sopcare_Pro_${currentFilter.id}_${new Date().getTime()}.png`;
                     document.body.appendChild(link);
                     link.click();
                     
