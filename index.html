@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sopcare - 20 Anime Ultra Filters</title>
+    <title>Sopcare - Anime Pro Camera</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -12,29 +12,43 @@
         video { width: 100%; height: 100%; object-fit: cover; }
 
         /* Tiêu đề Neon mộng mơ */
-        .status-header { position: absolute; top: 15px; width: 100%; text-align: center; color: #fff; font-weight: 900; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff; }
-        .sub-header { position: absolute; top: 38px; width: 100%; text-align: center; color: #ffeb3b; font-weight: bold; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 5px #ffeb3b; }
+        .status-header { position: absolute; top: 15px; width: 100%; text-align: center; color: #fff; font-weight: 900; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff; }
+        .sub-header { position: absolute; top: 38px; width: 100%; text-align: center; color: #ffeb3b; font-weight: bold; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 5px #ffeb3b; }
 
-        /* Lưới căn góc Ốc Sên phát sáng */
+        /* NÚT LẬT CAMERA TRƯỚC/SAU */
+        .flip-btn { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; z-index: 12; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-weight: bold; font-size: 18px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+
+        /* HỆ THỐNG LỚP CĂN GÓC (9 CHẾ ĐỘ) */
         .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 3; }
         .active { display: block; }
-        .spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; filter: drop-shadow(0px 0px 3px rgba(255,255,255,0.6)); }
+        .line { position: absolute; background-color: rgba(255, 255, 255, 0.5); box-shadow: 0 0 3px rgba(0,0,0,0.6); }
+
+        /* Các lớp đường căn */
+        .spiral-svg, .triangle-svg, .diagonal-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .grid-v1, .grid-v2 { width: 1.5px; height: 100%; top: 0; } .grid-v1 { left: 33.33%; } .grid-v2 { left: 66.66%; }
+        .grid-h1, .grid-h2 { height: 1.5px; width: 100%; left: 0; } .grid-h1 { top: 33.33%; } .grid-h2 { top: 66.66%; }
+        .frame-outer { position: absolute; top: 15%; left: 10%; width: 80%; height: 55%; border: 1.5px solid rgba(255, 255, 255, 0.6); }
+        .frame-inner { position: absolute; top: 70%; left: 44%; width: 12%; height: 15%; border: 1.5px solid rgba(255, 255, 255, 0.7); }
+        .double-v1, .double-v2 { width: 1.5px; height: 100%; top: 0; } .double-v1 { left: 45%; } .double-v2 { left: 55%; }
 
         /* Panel điều khiển camera phía dưới */
-        .controls-panel { position: absolute; bottom: 0; width: 100%; height: 125px; background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.75)); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 12px; z-index: 10; }
+        .controls-panel { position: absolute; bottom: 0; width: 100%; height: 135px; background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.75)); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 12px; z-index: 10; }
+        .mode-selector { width: 100%; display: flex; justify-content: flex-start; gap: 8px; overflow-x: auto; padding: 6px 15px; scrollbar-width: none; }
+        .mode-selector::-webkit-scrollbar { display: none; }
+        .mode-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #ccc; padding: 6px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; text-transform: uppercase; white-space: nowrap; font-weight: bold; }
+        .mode-btn.selected { background: #00ffff; color: #000; font-weight: 900; border-color: #00ffff; box-shadow: 0 0 10px rgba(0,255,255,0.5); }
         
         .action-area { width: 100%; display: flex; justify-content: space-around; align-items: center; padding: 0 20px; }
-        .footer-text { color: #00ffff; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 0 0 5px #00ffff; }
-        .shutter-btn { width: 62px; height: 62px; border-radius: 50%; background-color: #ffeb3b; border: 5px solid rgba(255, 235, 59, 0.3); cursor: pointer; box-shadow: 0 0 15px rgba(255,235,59,0.5); font-weight: bold; font-size: 11px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; color: #000; }
+        .footer-text { color: #ff00ff; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px #ff00ff; }
+        .shutter-btn { width: 60px; height: 60px; border-radius: 50%; background-color: #ffeb3b; border: 5px solid rgba(255, 235, 59, 0.3); cursor: pointer; box-shadow: 0 0 15px rgba(255,235,59,0.5); }
 
         /* GIAO DIỆN CHỈNH 20 SIÊU BỘ LỌC ANIME SAU KHI CHỤP */
         .preview-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #020202; z-index: 20; flex-direction: column; justify-content: space-between; align-items: center; padding: 15px 0; }
-        .preview-box { width: 100%; height: 50%; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; background: #090909; }
+        .preview-box { width: 100%; height: 52%; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; background: #090909; }
         
-        /* Khung chứa ảnh và lớp màu anime */
         .image-wrapper { position: relative; max-width: 90%; max-height: 100%; display: flex; justify-content: center; align-items: center; border-radius: 12px; overflow: hidden; border: 1px solid #222; box-shadow: 0 15px 35px rgba(0,0,0,0.8); }
-        #previewImage { width: 100%; height: 100%; object-fit: contain; transition: filter 0.1s ease; }
-        .gradient-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: overlay; transition: background 0.1s ease; }
+        #previewImage { width: 100%; height: 100%; object-fit: contain; }
+        .gradient-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: overlay; }
 
         /* Thanh chứa 20 Bộ lọc cuộn ngang */
         .filter-bar { width: 100%; display: flex; gap: 10px; overflow-x: auto; padding: 10px; background: #0c0c0c; border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a; scrollbar-width: none; }
@@ -42,7 +56,7 @@
         .filter-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 70px; cursor: pointer; }
         .filter-thumb { width: 50px; height: 50px; border-radius: 8px; border: 2px solid #252525; overflow: hidden; transition: all 0.15s; background: #151515; }
         .filter-item.active .filter-thumb { border-color: #ffeb3b; box-shadow: 0 0 10px rgba(255,235,59,0.5); transform: scale(1.05); }
-        .filter-name { color: #777; font-size: 9px; text-align: center; white-space: nowrap; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-name { color: #777; font-size: 9px; text-align: center; white-space: nowrap; font-weight: bold; text-transform: uppercase; }
         .filter-item.active .filter-name { color: #ffeb3b; }
 
         /* Nút lưu ảnh */
@@ -51,7 +65,7 @@
         .btn-cancel { background: #161616; color: #888; border: 1px solid #252525; }
         .btn-download { background: linear-gradient(90deg, #ff00ff, #ffeb3b); color: #000; box-shadow: 0 0 15px rgba(255,0,255,0.4); }
 
-        .loading-toast { display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: #ffeb3b; padding: 12px 25px; border-radius: 25px; font-weight: bold; font-size: 12px; z-index: 40; border: 1px solid #ffeb3b; letter-spacing: 1px; text-align: center; }
+        .loading-toast { display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: #ffeb3b; padding: 12px 25px; border-radius: 25px; font-weight: bold; font-size: 12px; z-index: 40; border: 1px solid #ffeb3b; text-align: center; }
 
         canvas { display: none; }
     </style>
@@ -60,25 +74,40 @@
 
     <div class="camera-container" id="cameraView">
         <video id="video" autoplay playsinline></video>
-        <div class="status-header">SOPCARE ANIME</div>
-        <div class="sub-header">20 ULTRA-FILTERS ACTIVATED</div>
+        <div class="status-header">SOPCARE ANIME PRO</div>
+        <div class="sub-header">FRONT & BACK CAM + MULTI-GRID</div>
+
+        <div class="flip-btn" onclick="toggleCamera()">🔄</div>
 
         <div id="layout-spiral" class="overlay-layer active">
-            <svg class="spiral-svg" viewBox="0 0 1000 1000">
-                <path d="M500,500 m -300, 0 a 300,300 0 1,0 600,0 a 300,300 0 1,0 -600,0 M500,500 m -220, 0 a 220,220 0 1,0 440,0 a 220,220 0 1,0 -440,0 M500,500 m -140, 0 a 140,140 0 1,0 280,0 a 140,140 0 1,0 -280,0 M500,500 m -60, 0 a 60,60 0 1,0 120,0 a 60,60 0 1,0 -120,0" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5"/>
-            </svg>
+            <svg class="spiral-svg" viewBox="0 0 1000 1000"><path d="M500,500 m -300, 0 a 300,300 0 1,0 600,0 a 300,300 0 1,0 -600,0 M500,500 m -220, 0 a 220,220 0 1,0 440,0 AM500,500 m -140, 0 a 140,140 0 1,0 280,0" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5"/></svg>
         </div>
+        <div id="layout-grid" class="overlay-layer"><div class="line grid-v1"></div><div class="line grid-v2"></div><div class="line grid-h1"></div><div class="line grid-h2"></div></div>
+        <div id="layout-framing" class="overlay-layer"><div class="frame-outer"></div><div class="frame-inner"></div></div>
+        <div id="layout-triangle" class="overlay-layer">
+            <svg class="triangle-svg"><polygon points="50%,35% 8%,75% 92%,75%" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/></svg>
+        </div>
+        <div id="layout-double" class="overlay-layer"><div class="line double-v1"></div><div class="line double-v2"></div></div>
+        <div id="layout-diagonal" class="overlay-layer"><svg class="diagonal-svg"><line x1="0" y1="80%" x2="100%" y2="45%" stroke="rgba(255,255,255,0.6)" stroke-width="2"/></svg></div>
 
         <div class="controls-panel">
+            <div class="mode-selector">
+                <button class="mode-btn selected" onclick="changeLayout('spiral', this)">Ốc Sên</button>
+                <button class="mode-btn" onclick="changeLayout('grid', this)">Lưới 1/3</button>
+                <button class="mode-btn" onclick="changeLayout('framing', this)">Khung Hình</button>
+                <button class="mode-btn" onclick="changeLayout('triangle', this)">Tam Giác</button>
+                <button class="mode-btn" onclick="changeLayout('double', this)">Đường Đôi</button>
+                <button class="mode-btn" onclick="changeLayout('diagonal', this)">Đường Chéo</button>
+            </div>
             <div class="action-area">
-                <div class="footer-text">TRONG TRẺO • MỘNG MƠ</div>
-                <button class="shutter-btn" onclick="takePhoto()">Chụp</button>
+                <div class="footer-text">CHỌN GÓC CHUẨN</div>
+                <button class="shutter-btn" onclick="takePhoto()"></button>
             </div>
         </div>
     </div>
 
     <div class="preview-container" id="previewView">
-        <div class="status-header" style="color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b;">ANIME DEVELOPING</div>
+        <div class="status-header" style="color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b;">ANIME COLORING</div>
         
         <div class="preview-box">
             <div class="image-wrapper">
@@ -90,12 +119,12 @@
         <div class="filter-bar" id="filterBar"></div>
 
         <div class="bottom-actions">
-            <button class="action-btn btn-cancel" onclick="cancelPreview()">Hủy / Chụp lại</button>
+            <button class="action-btn btn-cancel" onclick="cancelPreview()">Chụp lại</button>
             <button class="action-btn btn-download" onclick="downloadFinalImage()">Lưu Về Máy</button>
         </div>
     </div>
 
-    <div id="loadingToast" class="loading-toast">👽 ĐANG CHUYỂN THẾ GIỚI ANIME...</div>
+    <div id="loadingToast" class="loading-toast">👽 ĐANG XUẤT FILE ANIME...</div>
     <canvas id="canvas"></canvas>
 
     <script>
@@ -108,10 +137,12 @@
         const filterBar = document.getElementById('filterBar');
         const loadingToast = document.getElementById('loadingToast');
 
+        let currentStream = null;
+        let useFacingMode = "environment"; // Mặc định ban đầu dùng cam sau ("environment"), đổi sang cam trước là "user"
         let originalImageDataUrl = '';
-        let selectedFilterId = 'normal';
+        let selectedFilterId = 'shinkai-vibes';
 
-        // CHÍNH THỨC KHỞI TẠO 20 SIÊU BỘ LỌC ANIME ĐẸP, CÓ GU, KHÔNG LỐ
+        // DANH SÁCH 20 BỘ LỌC ANIME ĐẸP XỊN MỊN
         const filtersConfig = [
             { id: 'normal', name: 'Màu Gốc', filterCSS: 'none', blend: 'none', gradStyle: '' },
             { id: 'sky-pro', name: 'Trời Xanh', filterCSS: 'contrast(106%) saturate(145%) brightness(103%) hue-rotate(5deg)', blend: 'overlay', gradStyle: 'linear-gradient(to top, rgba(135,206,235,0.1), transparent)' },
@@ -135,18 +166,39 @@
             { id: 'bw-art', name: 'Mono Art', filterCSS: 'grayscale(100%) contrast(165%) brightness(88%)', blend: 'none', gradStyle: '' }
         ];
 
+        // KHỞI TẠO CAMERA THEO CHẾ ĐỘ
         async function initCam() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
-                });
-                video.srcObject = stream;
+                const constraints = {
+                    video: { facingMode: useFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
             } catch (err) {
-                navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(stream => { video.srcObject = stream; });
+                // Dự phòng nếu không hỗ trợ FacingMode chính xác
+                const fallBackConstraints = { video: true, audio: false };
+                currentStream = await navigator.mediaDevices.getUserMedia(fallBackConstraints);
+                video.srcObject = currentStream;
             }
         }
 
-        // Tự động render 20 bộ lọc ra thanh điều khiển
+        // HÀM ĐỔI CAMERA TRƯỚC VÀ SAU
+        function toggleCamera() {
+            useFacingMode = (useFacingMode === "environment") ? "user" : "environment";
+            initCam();
+        }
+
+        function changeLayout(layoutName, btnElement) {
+            document.querySelectorAll('.overlay-layer').forEach(layer => layer.classList.remove('active'));
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById(`layout-${layoutName}`).classList.add('active');
+            btnElement.classList.add('selected');
+        }
+
         function renderFilterBar() {
             filterBar.innerHTML = '';
             filtersConfig.forEach(f => {
@@ -173,17 +225,14 @@
             selectedFilterId = filterId;
             const targetFilter = filtersConfig.find(f => f.id === filterId);
             
-            // Áp hiệu ứng CSS mạnh lên ảnh thẻ <img> xem trước
             previewImage.style.filter = targetFilter.filterCSS;
             
-            // Nếu là bộ lọc dùng Gradients overlay thì áp mix-blend-mode
             if(targetFilter.gradStyle) {
                 gradientOverlay.style.background = targetFilter.gradStyle;
                 gradientOverlay.style.mixBlendMode = targetFilter.blend;
             } else {
                 gradientOverlay.style.background = 'none';
             }
-
             renderFilterBar();
         }
 
@@ -192,16 +241,22 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Vẽ ảnh mộc từ camera lên canvas ngầm
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            originalImageDataUrl = canvas.toDataURL('image/png');
+            // Xử lý lật ảnh đối xứng nếu đang chụp bằng cam trước (user)
+            if (useFacingMode === "user") {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
             
-            // Chuyển giao diện sang mục sửa màu
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset ma trận vẽ
+            
+            originalImageDataUrl = canvas.toDataURL('image/png');
             previewImage.src = originalImageDataUrl;
+            
             cameraView.style.display = 'none';
             previewView.style.display = 'flex';
             
-            selectFilter('shinkai-vibes'); // Mặc định hiển thị một màu anime xịn nhất
+            selectFilter('shinkai-vibes');
         }
 
         function cancelPreview() {
@@ -209,10 +264,8 @@
             cameraView.style.display = 'flex';
         }
 
-        // ÉP CHẶT BỘ LỌC VÀ LỚP GRADIENT VÀO FILE ẢNH VÀ TẢI XUỐNG
         function downloadFinalImage() {
             loadingToast.style.display = 'block';
-            
             const imgElement = new Image();
             imgElement.src = originalImageDataUrl;
             
@@ -222,54 +275,11 @@
                 canvas.height = imgElement.height;
                 
                 const currentFilter = filtersConfig.find(f => f.id === selectedFilterId);
-                
-                // Cấu hình filter đồ họa canvas trùng khớp filter CSS
                 ctx.filter = currentFilter.filterCSS;
                 ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
                 
-                // Chèn thêm lớp Gradient nếu bộ lọc có dùng
                 if(currentFilter.gradStyle) {
                     ctx.globalCompositeOperation = currentFilter.blend === 'none' ? 'source-over' : currentFilter.blend;
                     let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
                     
-                    // Logic xác định loại gradient dựa theo ID bộ lọc
-                    if(currentFilter.id === 'sky-pro') {
-                        gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-                        gradient.addColorStop(0, "rgba(135,206,235,0.1)"); gradient.addColorStop(1, "transparent");
-                    } else if(currentFilter.id === 'shinkai-vibes') {
-                        gradient.addColorStop(0, "rgba(255,200,220,0.15)"); gradient.addColorStop(1, "rgba(135,206,255,0.1)");
-                    } else if(currentFilter.id === 'peach-anime') {
-                        gradient.addColorStop(0, "rgba(255,182,193,0.12)"); gradient.addColorStop(1, "rgba(255,225,200,0.08)");
-                    } else if(currentFilter.id === 'dreamy-pink') {
-                        gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-                        gradient.addColorStop(0, "rgba(255,182,193,0.15)"); gradient.addColorStop(1, "rgba(255,200,230,0.1)");
-                    } else if(currentFilter.id === 'cyan-orange') {
-                        gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-                        gradient.addColorStop(0, "rgba(0,128,128,0.12)"); gradient.addColorStop(1, "rgba(255,165,0,0.05)");
-                    } // ...Thêm các logic gradient khác nếu cần thiết
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
-                
-                // Reset lại Canvas
-                ctx.globalCompositeOperation = 'source-over'; ctx.filter = "none";
-                
-                canvas.toBlob(function(blob) {
-                    const fileUrl = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = fileUrl; link.download = `Sopcare_Anime_${new Date().getTime()}.png`;
-                    document.body.appendChild(link); link.click();
-                    
-                    setTimeout(() => {
-                        document.body.removeChild(link); URL.revokeObjectURL(fileUrl);
-                        loadingToast.style.display = 'none';
-                    }, 500);
-                }, 'image/png', 1.0);
-            };
-        }
-
-        window.addEventListener('DOMContentLoaded', () => { initCam(); renderFilterBar(); });
-    </script>
-</body>
-</html>
+                    if(currentFilter.id === 'sky-pro
