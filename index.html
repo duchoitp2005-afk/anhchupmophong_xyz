@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sopcare - Camera 10 Filter & Bố Cục</title>
+    <title>Sopcare - Camera 10 Filter Người & Thiên Nhiên</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Open Sans', Arial, sans-serif; }
@@ -18,7 +18,7 @@
         .active { display: block; }
         .line { position: absolute; background-color: rgba(255, 255, 255, 0.6); box-shadow: 0 0 4px rgba(0,0,0,0.7); }
 
-        /* Các đường lưới bố cục từ video */
+        /* Các đường lưới bố cục chuẩn */
         .spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         .grid-v1, .grid-v2 { width: 1.5px; height: 100%; top: 0; } .grid-v1 { left: 33.33%; } .grid-v2 { left: 66.66%; }
         .grid-h1, .grid-h2 { height: 1.5px; width: 100%; left: 0; } .grid-h1 { top: 33.33%; } .grid-h2 { top: 66.66%; }
@@ -41,22 +41,21 @@
 
         /* INTERFACE XEM TRƯỚC VÀ CHỈNH 10 BỘ LỌC SAU KHI CHỤP */
         .preview-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0b; z-index: 20; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px 0; }
-        .preview-box { width: 100%; height: 60%; display: flex; justify-content: center; align-items: center; position: relative; }
+        .preview-box { width: 100%; height: 58%; display: flex; justify-content: center; align-items: center; position: relative; }
         
-        /* Hiệu ứng filter áp đè bằng CSS lên ảnh xem trước */
         #previewImage { max-width: 90%; max-height: 100%; border: 2px solid #333; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); object-fit: contain; }
 
         /* Thanh chứa 10 Bộ lọc màu cuộn ngang */
         .filter-bar { width: 100%; display: flex; gap: 10px; overflow-x: auto; padding: 15px; background: #161616; border-top: 1px solid #222; border-bottom: 1px solid #222; scrollbar-width: none; }
         .filter-bar::-webkit-scrollbar { display: none; }
-        .filter-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 70px; cursor: pointer; }
+        .filter-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 75px; cursor: pointer; }
         .filter-thumb { width: 55px; height: 55px; border-radius: 8px; border: 2px solid #444; background: #333; overflow: hidden; transition: all 0.2s; }
         .filter-item.active .filter-thumb { border-color: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
         .filter-name { color: #aaa; font-size: 10px; text-align: center; white-space: nowrap; }
         .filter-item.active .filter-name { color: #00ffcc; font-weight: bold; }
 
         /* Cụm nút thao tác dưới cùng */
-        .bottom-actions { width: 100%; display: flex; justify-content: center; gap: 20px; padding: 10px 20px; }
+        .bottom-actions { width: 100%; display: flex; justify-content: center; gap: 20px; padding: 5px 20px; }
         .action-btn { padding: 12px 28px; border-radius: 25px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; text-transform: uppercase; }
         .btn-cancel { background: #222; color: #fff; border: 1px solid #444; }
         .btn-download { background: #00ffcc; color: #000; box-shadow: 0 4px 15px rgba(0,255,204,0.3); }
@@ -70,7 +69,7 @@
 
     <div class="camera-container" id="cameraView">
         <video id="video" autoplay playsinline></video>
-        <div class="status-header">CAMERA BỐ CỤC CHUẨN</div>
+        <div class="status-header">MÀN HÌNH CĂN GÓC CHUẨN</div>
 
         <div id="layout-spiral" class="overlay-layer active">
             <svg class="spiral-svg" viewBox="0 0 1000 1000">
@@ -102,17 +101,16 @@
     </div>
 
     <div class="preview-container" id="previewView">
-        <div class="status-header" style="color: #00ffcc; text-shadow: 0 0 8px #00ffcc;">CHỌN FILTER CỦA BẠN</div>
+        <div class="status-header" style="color: #00ffcc; text-shadow: 0 0 8px #00ffcc;">CHỌN FILTER "ẢO MA"</div>
         
         <div class="preview-box">
             <img id="previewImage" alt="Preview ảnh chụp">
         </div>
 
-        <div class="filter-bar" id="filterBar">
-            </div>
+        <div class="filter-bar" id="filterBar"></div>
 
         <div class="bottom-actions">
-            <button class="action-btn btn-cancel" onclick="cancelPreview()">Hủy / Chụp lại</button>
+            <button class="action-btn btn-cancel" onclick="cancelPreview()">Chụp lại</button>
             <button class="action-btn btn-download" onclick="downloadFinalImage()">Tải ảnh xuống</button>
         </div>
     </div>
@@ -129,21 +127,21 @@
         const filterBar = document.getElementById('filterBar');
         const loadingToast = document.getElementById('loadingToast');
 
-        let originalImageDataUrl = ''; // Giữ ảnh gốc chưa lọc màu
+        let originalImageDataUrl = '';
         let selectedFilterId = 'normal';
 
-        // Khai báo cấu hình 10 bộ lọc màu chuyên nghiệp (CSS Filters)
+        // 10 Bộ lọc màu mới cực ảo cho Chân dung (Người) và Phong cảnh (Thiên nhiên)
         const filtersConfig = [
-            { id: 'normal', name: 'Gốc', filterCSS: 'none', isGradient: false },
-            { id: 'ao-sunset', name: 'Hoàng Hôn Áo', filterCSS: 'contrast(115%) saturate(135%) brightness(103%)', isGradient: true },
-            { id: 'teal-orange', name: 'Xanh Teal', filterCSS: 'contrast(120%) saturate(125%) hue-rotate(-10deg)', isGradient: false },
-            { id: 'pastel-pink', name: 'Hồng Pastel', filterCSS: 'contrast(95%) saturate(110%) brightness(105%) sepia(15%) hue-rotate(320deg)', isGradient: false },
-            { id: 'crystal', name: 'Trong Trẻo', filterCSS: 'contrast(110%) saturate(120%) brightness(105%)', isGradient: false },
-            { id: 'cinema', name: 'Điện Ảnh', filterCSS: 'contrast(125%) saturate(85%) brightness(95%) sepia(10%)', isGradient: false },
-            { id: 'vintage', name: 'Cổ Điển', filterCSS: 'contrast(90%) sepia(45%) saturate(90%) brightness(98%)', isGradient: false },
-            { id: 'deep-bw', name: 'Trắng Đen Deep', filterCSS: 'grayscale(100%) contrast(140%) brightness(95%)', isGradient: false },
-            { id: 'foodie-leaf', name: 'Foodie Cây', filterCSS: 'contrast(105%) saturate(150%) hue-rotate(10deg) brightness(102%)', isGradient: false },
-            { id: 'warm-sun', name: 'Nắng Ấm', filterCSS: 'contrast(105%) saturate(115%) brightness(102%) sepia(20%)', isGradient: false }
+            { id: 'normal', name: 'Màu Gốc', filterCSS: 'none', grad: null },
+            { id: 'korean-skin', name: '✨ Trắng Hàn', filterCSS: 'brightness(108%) contrast(96%) saturate(105%) sepia(4%)', grad: null },
+            { id: 'peach-cream', name: '🍑 Cam Đào', filterCSS: 'brightness(104%) contrast(102%) saturate(115%) hue-rotate(-5deg)', grad: 'linear-gradient(135deg, rgba(255,182,193,0.15), rgba(255,218,185,0.1))' },
+            { id: 'foodie-nature', name: '🌿 Fresh Leaf', filterCSS: 'contrast(106%) saturate(145%) hue-rotate(8deg) brightness(102%)', grad: null },
+            { id: 'cyber-teal', name: '🌌 Teal & Orange', filterCSS: 'contrast(120%) saturate(130%) hue-rotate(-12deg)', grad: 'linear-gradient(to right, rgba(0,128,128,0.1), rgba(255,165,0,0.08))' },
+            { id: 'dreamy-sunset', name: '🌅 Sunset Ảo', filterCSS: 'contrast(112%) saturate(135%) brightness(103%)', grad: 'linear-gradient(135deg, rgba(135,206,235,0.22), rgba(255,182,193,0.25))' },
+            { id: 'vintage-film', name: '🎞 Phim Cổ', filterCSS: 'contrast(92%) sepia(30%) saturate(95%) brightness(98%) hue-rotate(-5deg)', grad: null },
+            { id: 'indie-vibe', name: '🎒 Indie Vibe', filterCSS: 'contrast(115%) brightness(96%) saturate(125%) sepia(15%)', grad: 'linear-gradient(to bottom, rgba(255,255,0,0.05), transparent)' },
+            { id: 'clear-sky', name: '💎 Trong Trẻo', filterCSS: 'contrast(112%) saturate(120%) brightness(106%) hue-rotate(5deg)', grad: null },
+            { id: 'deep-moody', name: '🖤 Noir Mood', filterCSS: 'grayscale(100%) contrast(145%) brightness(92%)', grad: null }
         ];
 
         async function initCam() {
@@ -164,7 +162,6 @@
             btnElement.classList.add('selected');
         }
 
-        // Tạo danh sách 10 bộ lọc trên thanh công cụ
         function renderFilterBar() {
             filterBar.innerHTML = '';
             filtersConfig.forEach(f => {
@@ -172,10 +169,9 @@
                 item.className = `filter-item ${f.id === selectedFilterId ? 'active' : ''}`;
                 item.onclick = () => selectFilter(f.id);
 
-                // Tạo hiệu ứng thumbnail thu nhỏ mẫu
                 let thumbStyle = `filter: ${f.filterCSS};`;
-                if(f.isGradient) {
-                    thumbStyle += `background: linear-gradient(135deg, #87ceeb, #ffb6c1);`;
+                if(f.grad) {
+                    thumbStyle += `background: ${f.grad};`;
                 } else {
                     thumbStyle += `background: linear-gradient(to bottom, #555, #222);`;
                 }
@@ -188,18 +184,14 @@
             });
         }
 
-        // Chọn bộ lọc màu và đổi trực tiếp trên màn hình xem trước
         function selectFilter(filterId) {
             selectedFilterId = filterId;
             const targetFilter = filtersConfig.find(f => f.id === filterId);
             
-            // Áp hiệu ứng CSS lên ảnh thẻ <img> xem trước
             previewImage.style.filter = targetFilter.filterCSS;
             
-            // Nếu là bộ lọc hoàng hôn áo thì lồng thêm gradient overlay bằng hiệu ứng CSS lồng
-            if(targetFilter.isGradient) {
-                previewImage.style.background = 'linear-gradient(135deg, rgba(135,206,235,0.25), rgba(255,182,193,0.25))';
-                previewImage.style.mixBlendMode = 'normal';
+            if(targetFilter.grad) {
+                previewImage.style.background = targetFilter.grad;
             } else {
                 previewImage.style.background = 'none';
             }
@@ -207,22 +199,19 @@
             renderFilterBar();
         }
 
-        // CHỤP ẢNH GỐC ĐỂ CHUẨN BỊ EDIT FILTER
         function takePhoto() {
             const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Vẽ ảnh mộc từ camera lên canvas ngầm
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             originalImageDataUrl = canvas.toDataURL('image/png');
             
-            // Chuyển giao diện sang mục sửa màu
             previewImage.src = originalImageDataUrl;
             cameraView.style.display = 'none';
             previewView.style.display = 'flex';
             
-            selectFilter('normal'); // Mặc định hiển thị màu gốc trước
+            selectFilter('normal');
         }
 
         function cancelPreview() {
@@ -230,7 +219,6 @@
             cameraView.style.display = 'flex';
         }
 
-        // ÉP CHẶT BỘ LỌC ĐÃ CHỌN VÀO FILE ẢNH VÀ TẢI XUỐNG MÁY
         function downloadFinalImage() {
             loadingToast.style.display = 'block';
             
@@ -244,26 +232,34 @@
                 
                 const currentFilter = filtersConfig.find(f => f.id === selectedFilterId);
                 
-                // Cấu hình filter đồ họa canvas trùng khớp filter CSS
                 ctx.filter = currentFilter.filterCSS;
                 ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
                 
-                // Chèn thêm lớp Gradient nếu chọn bộ lọc Hoàng Hôn Áo
-                if(currentFilter.isGradient) {
+                if(currentFilter.grad) {
                     ctx.globalCompositeOperation = 'overlay';
                     let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                    gradient.addColorStop(0, "rgba(135, 206, 235, 0.25)");
-                    gradient.addColorStop(0.5, "rgba(255, 182, 193, 0.25)");
-                    gradient.addColorStop(1, "rgba(135, 206, 235, 0.25)");
+                    // Đổ màu gradient tương ứng bộ lọc dựa theo cấu hình
+                    if(currentFilter.id === 'peach-cream') {
+                        gradient.addColorStop(0, "rgba(255, 182, 193, 0.15)");
+                        gradient.addColorStop(1, "rgba(255, 218, 185, 0.1)");
+                    } else if(currentFilter.id === 'cyber-teal') {
+                        gradient.addColorStop(0, "rgba(0, 128, 128, 0.1)");
+                        gradient.addColorStop(1, "rgba(255, 165, 0, 0.08)");
+                    } else if(currentFilter.id === 'dreamy-sunset') {
+                        gradient.addColorStop(0, "rgba(135, 206, 235, 0.22)");
+                        gradient.addColorStop(0.5, "rgba(255, 182, 193, 0.25)");
+                        gradient.addColorStop(1, "rgba(135, 206, 235, 0.22)");
+                    } else if(currentFilter.id === 'indie-vibe') {
+                        gradient.addColorStop(0, "rgba(255, 255, 0, 0.05)");
+                        gradient.addColorStop(1, "transparent");
+                    }
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                // Reset lại Canvas
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.filter = "none";
                 
-                // Tiến hành xuất file lưu trữ hệ thống
                 canvas.toBlob(function(blob) {
                     const fileUrl = URL.createObjectURL(blob);
                     const link = document.createElement('a');
