@@ -3,48 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sopcare - Camera Tải Ảnh Tự Động</title>
+    <title>Sopcare - Camera Bố Cục Chuẩn & Auto Tải Ảnh</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: Arial, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Open Sans', Arial, sans-serif; }
         
         .camera-container { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        .status-header { position: absolute; top: 10px; width: 100%; text-align: center; color: #ff007f; font-weight: bold; font-size: 16px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 5px #ff007f; }
+        /* Tiêu đề phát sáng hồng neon rực rỡ góc trên */
+        .status-header { position: absolute; top: 12px; width: 100%; text-align: center; color: #ff007f; font-weight: bold; font-size: 16px; text-transform: uppercase; z-index: 10; text-shadow: 0 0 8px #ff007f; }
 
-        /* Lớp nền hiển thị lưới bố cục trên màn hình */
-        .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        .active { display: block; }
-        .line { position: absolute; background-color: rgba(255, 255, 255, 0.5); box-shadow: 0 0 3px rgba(0,0,0,0.6); }
-
-        /* Bộ lọc màu sắc gradients giống hình mẫu */
+        /* Phủ lớp màu Gradients Ảo trực tiếp lên Camera màn hình */
         .ao-gradient {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, rgba(135, 206, 235, 0.35) 0%, rgba(255, 182, 193, 0.35) 50%, rgba(135, 206, 235, 0.35) 100%);
-            mix-blend-mode: color; pointer-events: none;
+            mix-blend-mode: color; pointer-events: none; z-index: 2;
         }
 
-        /* Các chế độ bố cục */
+        /* Lớp hiển thị lưới bố cục */
+        .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 3; }
+        .active { display: block; }
+        .line { position: absolute; background-color: rgba(255, 255, 255, 0.6); box-shadow: 0 0 4px rgba(0,0,0,0.7); }
+
+        /* 1. Lưới xoắn ốc (Ốc Sên) */
         .spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .grid-v1, .grid-v2 { width: 1px; height: 100%; top: 0; } .grid-v1 { left: 33.33%; } .grid-v2 { left: 66.66%; }
-        .grid-h1, .grid-h2 { height: 1px; width: 100%; left: 0; } .grid-h1 { top: 33.33%; } .grid-h2 { top: 66.66%; }
-        .frame-box { position: absolute; top: 15%; left: 10%; width: 80%; height: 55%; border: 2px solid rgba(255, 255, 255, 0.6); }
+        /* 2. Lưới 1/3 Grid */
+        .grid-v1, .grid-v2 { width: 1.5px; height: 100%; top: 0; } .grid-v1 { left: 33.33%; } .grid-v2 { left: 66.66%; }
+        .grid-h1, .grid-h2 { height: 1.5px; width: 100%; left: 0; } .grid-h1 { top: 33.33%; } .grid-h2 { top: 66.66%; }
+        /* 3. Bố cục Khung hình (Framing lồng nhau) */
+        .frame-outer { position: absolute; top: 15%; left: 10%; width: 80%; height: 55%; border: 2px solid rgba(255, 255, 255, 0.7); box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
+        .frame-inner { position: absolute; top: 70%; left: 44%; width: 12%; height: 15%; border: 1.5px solid rgba(255, 255, 255, 0.8); }
+        /* 4. Bố cục Tam giác cân */
         .triangle-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border: 2.5px dotted #ffeb3b; border-radius: 50%; }
+        /* 5. Đường đôi song song thẳng đứng */
+        .double-v1, .double-v2 { width: 1.5px; height: 100%; top: 0; } .double-v1 { left: 45%; } .double-v2 { left: 55%; }
+        /* 6. Đường chéo dốc sườn núi */
+        .diagonal-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-        /* Thanh điều khiển */
-        .controls-panel { position: absolute; bottom: 0; width: 100%; height: 110px; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 10px; z-index: 10; }
-        .mode-selector { width: 100%; display: flex; justify-content: center; gap: 8px; overflow-x: auto; padding: 5px 10px; }
-        .mode-btn { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 6px 12px; border-radius: 15px; font-size: 12px; cursor: pointer; text-transform: uppercase; white-space: nowrap; }
-        .mode-btn.selected { background: #ffeb3b; color: #000; font-weight: bold; }
-
-        .action-area { width: 100%; display: flex; justify-content: space-around; align-items: center; }
-        .footer-text { color: #ffeb3b; font-weight: bold; font-size: 14px; text-transform: uppercase; }
+        /* Panel điều khiển phía dưới */
+        .controls-panel { position: absolute; bottom: 0; width: 100%; height: 125px; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 12px; z-index: 10; }
         
-        /* Hiệu ứng bấm nút chụp */
-        .shutter-btn { width: 55px; height: 55px; border-radius: 50%; background-color: #fff; border: 4px solid rgba(255, 255, 255, 0.3); cursor: pointer; transition: transform 0.1s ease; }
-        .shutter-btn:active { transform: scale(0.85); background: #ccc; }
+        /* Menu cuộn chọn bố cục mượt mà */
+        .mode-selector { width: 100%; display: flex; justify-content: flex-start; gap: 8px; overflow-x: auto; padding: 6px 15px; scrollbar-width: none; }
+        .mode-selector::-webkit-scrollbar { display: none; }
+        .mode-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 7px 14px; border-radius: 18px; font-size: 11px; cursor: pointer; text-transform: uppercase; white-space: nowrap; font-weight: bold; transition: all 0.2s; }
+        .mode-btn.selected { background: #ffeb3b; color: #000; box-shadow: 0 0 8px #ffeb3b; }
+
+        /* Khu vực nút chụp */
+        .action-area { width: 100%; display: flex; justify-content: space-around; align-items: center; padding: 0 20px; }
+        .footer-text { color: #ffeb3b; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+        .shutter-btn { width: 58px; height: 58px; border-radius: 50%; background-color: #fff; border: 4px solid rgba(255, 255, 255, 0.35); cursor: pointer; transition: transform 0.1s ease; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .shutter-btn:active { transform: scale(0.85); background: #ddd; }
+
+        /* THÔNG BÁO POPUP ĐANG XỬ LÝ TẢI */
+        .loading-toast { display: none; position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); color: #ffeb3b; padding: 15px 25px; border-radius: 25px; font-weight: bold; font-size: 14px; z-index: 30; border: 1px solid #ffeb3b; text-align: center; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
 
         canvas { display: none; }
     </style>
@@ -58,32 +71,45 @@
 
         <div id="layout-spiral" class="overlay-layer active">
             <svg class="spiral-svg" viewBox="0 0 1000 1000">
-                <path d="M500,500 m -300, 0 a 300,300 0 1,0 600,0 a 300,300 0 1,0 -600,0 M500,500 m -220, 0 a 220,220 0 1,0 440,0 a 220,220 0 1,0 -440,0 M500,500 m -140, 0 a 140,140 0 1,0 280,0 a 140,140 0 1,0 -280,0 M500,500 m -60, 0 a 60,60 0 1,0 120,0 a 60,60 0 1,0 -120,0" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+                <path d="M500,500 m -300, 0 a 300,300 0 1,0 600,0 a 300,300 0 1,0 -600,0 M500,500 m -220, 0 a 220,220 0 1,0 440,0 a 220,220 0 1,0 -440,0 M500,500 m -140, 0 a 140,140 0 1,0 280,0 a 140,140 0 1,0 -280,0 M500,500 m -60, 0 a 60,60 0 1,0 120,0 a 60,60 0 1,0 -120,0" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
             </svg>
         </div>
+
         <div id="layout-grid" class="overlay-layer">
             <div class="line grid-v1"></div><div class="line grid-v2"></div>
             <div class="line grid-h1"></div><div class="line grid-h2"></div>
         </div>
+
         <div id="layout-framing" class="overlay-layer">
-            <div class="frame-box"></div>
+            <div class="frame-outer"></div>
+            <div class="frame-inner"></div>
         </div>
+
         <div id="layout-triangle" class="overlay-layer">
             <svg class="triangle-svg">
-                <polygon points="50%,15% 0%,50% 100%,50%" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2"/>
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+                <polygon points="50%,38% 5%,75% 95%,75%" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5"/>
             </svg>
         </div>
-        <div id="layout-center" class="overlay-layer">
-            <div class="center-dot"></div>
+
+        <div id="layout-double" class="overlay-layer">
+            <div class="line double-v1"></div><div class="line double-v2"></div>
+        </div>
+
+        <div id="layout-diagonal" class="overlay-layer">
+            <svg class="diagonal-svg">
+                <line x1="0" y1="80%" x2="100%" y2="45%" stroke="rgba(255,255,255,0.75)" stroke-width="2.5"/>
+            </svg>
         </div>
 
         <div class="controls-panel">
             <div class="mode-selector">
                 <button class="mode-btn selected" onclick="changeLayout('spiral', this)">Ốc Sên</button>
                 <button class="mode-btn" onclick="changeLayout('grid', this)">1/3 Grid</button>
-                <button class="mode-btn" onclick="changeLayout('framing', this)">Khung</button>
+                <button class="mode-btn" onclick="changeLayout('framing', this)">Khung Hình</button>
                 <button class="mode-btn" onclick="changeLayout('triangle', this)">Tam Giác</button>
-                <button class="mode-btn" onclick="changeLayout('center', this)">Tâm Vàng</button>
+                <button class="mode-btn" onclick="changeLayout('double', this)">Đường Đôi</button>
+                <button class="mode-btn" onclick="changeLayout('diagonal', this)">Đường Chéo</button>
             </div>
             <div class="action-area">
                 <div class="footer-text">BỐ CỤC CHUẨN</div>
@@ -92,11 +118,13 @@
         </div>
     </div>
 
+    <div id="loadingToast" class="loading-toast">📸 ĐANG LƯU ẢNH...<br>Ảnh tự động tải xuống máy bạn!</div>
     <canvas id="canvas"></canvas>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
+        const loadingToast = document.getElementById('loadingToast');
 
         async function initCam() {
             try {
@@ -116,17 +144,18 @@
             btnElement.classList.add('selected');
         }
 
-        // TỰ ĐỘNG KÍCH HOẠT LỆNH DOWNLOAD KHI CHỤP
+        // CHỤP - ÉP MÀU HOÀNG HÔN ÁO - TỰ ĐỘNG TẢI TRỰC TIẾP KHÔNG CẦN ẤN GIỮ
         function takePhoto() {
+            loadingToast.style.display = 'block';
             const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Ép filter màu nịnh mắt
-            ctx.filter = "contrast(115%) saturate(135%) brightness(104%)";
+            // Xử lý bộ lọc màu sắc nịnh mắt căng nét giống hệt app
+            ctx.filter = "contrast(116%) saturate(138%) brightness(103%)";
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // Thêm Gradient màu Áo chèn vào ảnh gốc
+            // Ép thêm lớp phủ màu hoàng hôn hồng xanh hoàng gia lên ảnh
             ctx.globalCompositeOperation = 'overlay';
             let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
             gradient.addColorStop(0, "rgba(135, 206, 235, 0.25)");
@@ -138,16 +167,35 @@
             ctx.globalCompositeOperation = 'source-over';
             ctx.filter = "none";
             
-            // Chuyển canvas thành URL ảnh hình ảnh
-            const imageURL = canvas.toDataURL('image/png');
-            
-            // Tạo thẻ <a> ngầm để kích hoạt popup tải file hệ thống ngay lập tức
-            const a = document.createElement('a');
-            a.href = imageURL;
-            a.download = `Sopcare_AoFilter_${new Date().getTime()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            // Tối ưu hóa cơ chế ép file trực tiếp để trình duyệt bắt buộc phải tải về
+            try {
+                canvas.toBlob(function(blob) {
+                    const fileUrl = URL.createObjectURL(blob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = fileUrl;
+                    downloadLink.download = `Sopcare_Professional_${new Date().getTime()}.png`;
+                    
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    
+                    // Dọn dẹp bộ nhớ ngầm
+                    setTimeout(() => {
+                        document.body.removeChild(downloadLink);
+                        URL.revokeObjectURL(fileUrl);
+                        loadingToast.style.display = 'none';
+                    }, 600);
+                }, 'image/png', 1.0);
+            } catch (e) {
+                // Phương án dự phòng nếu trình duyệt quá cũ chặn Blob
+                const imageURL = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = imageURL;
+                a.download = `Sopcare_Professional_${new Date().getTime()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                loadingToast.style.display = 'none';
+            }
         }
 
         window.addEventListener('DOMContentLoaded', initCam);
