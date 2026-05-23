@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biên Tập & Xuất Video Có Sẵn Phụ Đề</title>
+    <title>Quay Video & Dịch Phụ Đề Anh-Việt V11</title>
     <style>
         body {
             background-color: #121212;
@@ -21,6 +21,16 @@
             margin-bottom: 5px;
             color: #f5f5f5;
             text-align: center;
+        }
+
+        .status-badge {
+            background-color: #0084ff;
+            color: white;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
 
         .tip-text {
@@ -60,7 +70,6 @@
             display: none;
         }
 
-        /* Canvas ẩn dùng để trộn chữ vào video */
         canvas {
             display: none;
         }
@@ -211,34 +220,34 @@
 </head>
 <body>
 
-    <h2>XUẤT VIDEO DÍNH LIỀN PHỤ ĐỀ V10 🎬</h2>
-    <div class="tip-text">💡 Cách dùng: Quay xong ➡️ Kéo thanh trượt để thêm chữ gõ tay ➡️ Bấm "Bắt đầu xuất video" để hệ thống in chữ trực tiếp lên hình và tải về!</div>
+    <h2>DỊCH PHỤ ĐỀ ANH ➡️ VIỆT TỰ ĐỘNG V11 🇺🇸🇻🇳</h2>
+    <div id="status" class="status-badge" style="background-color: #555;">BƯỚC 1: MỞ CAMERA</div>
+    <div class="tip-text">💡 <b>Quy trình:</b> Nói tiếng Anh khi quay hình ➡️ Máy tự động nhận diện và dịch sang tiếng Việt ➡️ Bạn kiểm tra, sửa lỗi trên thanh trượt ➡️ Xuất video!</div>
 
     <div class="video-container">
         <video id="preview" autoplay playsinline muted></video>
         <video id="playback" playsinline></video>
         <div class="subtitle-overlay">
-            <span id="subtitle" class="subtitle-text">Phụ đề hiển thị tại đây...</span>
+            <span id="subtitle" class="subtitle-text">Phụ đề dịch sẽ hiện ở đây...</span>
         </div>
     </div>
 
     <canvas id="renderCanvas" width="640" height="480"></canvas>
-
-    <div id="loading-text">⏳ Đang xử lý in chữ vào video, vui lòng đợi trong giây lát...</div>
+    <div id="loading-text">⏳ Đang xử lý in phụ đề tiếng Việt vào video, vui lòng đợi...</div>
 
     <div class="controls">
         <button id="btn-open" class="btn btn-start" onclick="openCamera()">Mở Camera 📷</button>
         <button id="btn-switch" class="btn" onclick="switchCamera()" style="display: none;">Đổi Camera 🔄</button>
-        <button id="btn-start-rec" class="btn btn-record" onclick="startRecording()" style="display: none;">Bắt Đầu Quay 🔴</button>
-        <button id="btn-stop-rec" class="btn btn-stop" onclick="stopRecording()" style="display: none;">Xong, Qua Trình Biên Tập ⏹️</button>
+        <button id="btn-start-rec" class="btn btn-record" onclick="startRecording()" style="display: none;">Bắt Đầu Quay (Nói Tiếng Anh) 🔴</button>
+        <button id="btn-stop-rec" class="btn btn-stop" onclick="stopRecording()" style="display: none;">Xong, Kiểm Tra Phụ Đề ⏹️</button>
         
-        <button id="btn-download" class="btn btn-download" onclick="exportVideoWithSubtitles()" style="display: none;">Bắt Đầu Xuất Video Có Sẵn Chữ 🎬</button>
+        <button id="btn-download" class="btn btn-download" onclick="exportVideoWithSubtitles()" style="display: none;">Xuất Video Phụ Đề Tiếng Việt 🎬</button>
     </div>
 
     <div id="editor-zone" class="timeline-editor-zone" style="display: none;">
         <div class="editor-header">
-            <span style="font-weight: bold; font-size: 14px; color: #ffaa00;">DANH SÁCH DÒNG PHỤ ĐỀ TỰ GÕ</span>
-            <button class="btn btn-add" onclick="addNewSubtitleAtCurrentTime()">➕ Thêm chữ tại giây này</button>
+            <span style="font-weight: bold; font-size: 14px; color: #ffaa00;">BẢN CHỈNH SỬA PHỤ ĐỀ TIẾNG VIỆT</span>
+            <button class="btn btn-add" onclick="addNewSubtitleAtCurrentTime()">➕ Chèn câu mới tại giây này</button>
         </div>
         <div id="sub-list" class="sub-list"></div>
     </div>
@@ -247,8 +256,12 @@
         let mediaRecorder;
         let recordedChunks = [];
         let streamObj = null;
+        let recognition;
         let currentFacingMode = 'user';
+        
+        let startTime;
         let srtRecords = []; 
+        let lastPhraseEndTime = 0; 
 
         const preview = document.getElementById('preview');
         const playback = document.getElementById('playback');
@@ -258,6 +271,7 @@
         const canvas = document.getElementById('renderCanvas');
         const ctx = canvas.getContext('2d');
         const loadingText = document.getElementById('loading-text');
+        const statusBadge = document.getElementById('status');
         
         const btnOpen = document.getElementById('btn-open');
         const btnSwitch = document.getElementById('btn-switch');
@@ -271,6 +285,8 @@
             playback.style.display = 'none';
             editorZone.style.display = 'none';
             playback.controls = false;
+            statusBadge.innerText = "BƯỚC 2: SẴN SÀNG QUAY VIDEO";
+            statusBadge.style.backgroundColor = "#00a86b";
 
             try {
                 streamObj = await navigator.mediaDevices.getUserMedia({
@@ -281,6 +297,8 @@
                 btnOpen.style.display = 'none';
                 btnSwitch.style.display = 'inline-block';
                 btnStartRec.style.display = 'inline-block';
+                
+                if (!recognition) initSpeechRecognition();
             } catch (err) {
                 alert("Không thể khởi động Camera!");
             }
@@ -291,12 +309,88 @@
             await openCamera();
         }
 
+        // HÀM DỊCH THUẬT AUTO TỪ ANH SANG VIỆT (DÙNG SERVER DỰ PHÒNG MIỄN PHÍ)
+        async function translateEnglishToVietnamese(text) {
+            try {
+                const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(text)}`);
+                const data = await response.json();
+                return data[0][0][0]; // Trả về chuỗi kết quả tiếng Việt đã dịch
+            } catch (error) {
+                console.error("Lỗi dịch thuật:", error);
+                return text; // Nếu lỗi mạng thì giữ nguyên chữ tiếng Anh gốc
+            }
+        }
+
+        // NHẬN DIỆN GIỌNG NÓI TIẾNG ANH VÀ XỬ LÝ DỊCH THỰC TẾ
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US'; // CHUYỂN NGÔN NGỮ ĐẦU VÀO SANG TIẾNG ANH
+
+            recognition.onresult = async function(event) {
+                if (mediaRecorder && mediaRecorder.state !== "recording") return;
+
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                // Hiển thị tạm thời chữ tiếng Anh đang nói lên màn hình nền
+                let englishText = finalTranscript || interimTranscript;
+                if (englishText.trim() !== "") {
+                    subtitleTxt.innerText = `🎙️ [EN]: ${englishText}`;
+                }
+
+                // KHI BẠN NÓI XONG MỘT CÂU (isFinal) -> TIẾN HÀNH DỊCH SANG TIẾNG VIỆT
+                if (finalTranscript.trim() !== "") {
+                    const currentTime = (Date.now() - startTime) / 1000;
+                    const startPoint = lastPhraseEndTime;
+                    const endPoint = currentTime + 0.4;
+                    lastPhraseEndTime = endPoint;
+
+                    // Gọi hàm dịch sang tiếng Việt
+                    const translatedVietnamese = await translateEnglishToVietnamese(finalTranscript.trim());
+                    
+                    // Đẩy câu đã dịch cùng mốc thời gian vào bộ lưu trữ
+                    srtRecords.push({
+                        id: Date.now() + Math.random(),
+                        start: parseFloat(startPoint.toFixed(2)),
+                        end: parseFloat(endPoint.toFixed(2)),
+                        text: translatedVietnamese // Lưu chữ tiếng Việt
+                    });
+
+                    // Hiển thị ngay câu tiếng Việt đã dịch lên màn hình lúc quay
+                    subtitleTxt.innerText = `🇻🇳: ${translatedVietnamese}`;
+                }
+            };
+
+            recognition.onend = function() {
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    try { recognition.start(); } catch(e) {}
+                }
+            };
+        }
+
         function startRecording() {
             recordedChunks = [];
             srtRecords = [];
-            subtitleTxt.innerText = "...";
+            lastPhraseEndTime = 0;
+            subtitleTxt.innerText = "Please speak English...";
             btnDownload.style.display = 'none';
             btnSwitch.style.display = 'none';
+            
+            statusBadge.innerText = "ĐANG QUAY & DỊCH TIẾNG ANH CHẠY NGẦM...";
+            statusBadge.style.backgroundColor = "#e50914";
 
             let options = MediaRecorder.isTypeSupported('video/mp4') ? { mimeType: 'video/mp4' } : {};
             try { mediaRecorder = new MediaRecorder(streamObj, options); } catch(e) { mediaRecorder = new MediaRecorder(streamObj); }
@@ -308,31 +402,42 @@
             mediaRecorder.onstop = function() {
                 preview.style.display = 'none';
                 playback.style.display = 'block';
-                playback.controls = true; // Hiện thanh trượt khi biên tập
+                playback.controls = true; 
                 editorZone.style.display = 'block'; 
+                
+                statusBadge.innerText = "BƯỚC 3: KIỂM TRA & SỬA LỖI DỊCH THUẬT";
+                statusBadge.style.backgroundColor = "#ffaa00";
 
                 const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
                 playback.src = URL.createObjectURL(blob);
                 
+                // ĐỒNG BỘ THANH TRƯỢT VIDEO VỚI CHỮ TIẾNG VIỆT
                 playback.ontimeupdate = function() {
                     const checkTime = playback.currentTime;
                     const activeSub = srtRecords.find(sub => checkTime >= sub.start && checkTime <= sub.end);
                     subtitleTxt.innerText = activeSub ? activeSub.text : "...";
                 };
 
+                // Vẽ danh sách các ô chữ tiếng Việt ra bên dưới để người dùng sửa tay
+                setTimeout(() => { renderEditorList(); }, 500);
+
                 btnDownload.style.display = 'inline-block';
                 btnSwitch.style.display = 'inline-block';
                 btnOpen.style.display = 'inline-block';
-                btnOpen.innerText = "Quay Lại 📷";
+                btnOpen.innerText = "Quay Lại Lớp Quay 📷";
             };
 
+            startTime = Date.now();
             mediaRecorder.start();
+            if (recognition) { try { recognition.start(); } catch(e) {} }
+            
             btnStartRec.style.display = 'none';
             btnStopRec.style.display = 'inline-block';
         }
 
         function stopRecording() {
             if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+            if (recognition) { try { recognition.stop(); } catch(e) {} }
             btnStartRec.style.display = 'inline-block';
             btnStopRec.style.display = 'none';
         }
@@ -343,7 +448,7 @@
                 id: Date.now(),
                 start: parseFloat(currentTime.toFixed(2)),
                 end: parseFloat((currentTime + 3).toFixed(2)),
-                text: "Gõ phụ đề tiếng Việt..."
+                text: "Sửa hoặc gõ chữ tiếng Việt tại đây..."
             };
             srtRecords.push(newSub);
             renderEditorList();
@@ -384,17 +489,16 @@
             renderEditorList();
         }
 
-        // BIẾN ĐỔI QUAN TRỌNG: IN CHỮ VÀO HÌNH VÀ XUẤT FILE VIDEO DUY NHẤT
+        // XUẤT VIDEO ĐÓNG GÓI CHỮ DÍNH LIỀN
         function exportVideoWithSubtitles() {
             playback.pause();
-            playback.currentTime = 0; // Chạy lại từ đầu để quay video mới
-            playback.controls = false; // Ẩn thanh trượt gốc tránh bị dính vào video mới
+            playback.currentTime = 0; 
+            playback.controls = false; 
             
             loadingText.style.display = 'block';
             btnDownload.disabled = true;
 
             const exportChunks = [];
-            // Lấy luồng hình ảnh từ canvas kết hợp luồng âm thanh gốc của video
             const canvasStream = canvas.captureStream(25); 
             
             let audioTrack = null;
@@ -404,9 +508,7 @@
                 audioTrack = playback.webkitCaptureStream().getAudioTracks()[0];
             }
             
-            if (audioTrack) {
-                canvasStream.addTrack(audioTrack);
-            }
+            if (audioTrack) canvasStream.addTrack(audioTrack);
 
             let options = MediaRecorder.isTypeSupported('video/mp4') ? { mimeType: 'video/mp4' } : {};
             const encoder = new MediaRecorder(canvasStream, options);
@@ -423,10 +525,9 @@
                 const finalBlob = new Blob(exportChunks, { type: encoder.mimeType });
                 const extension = encoder.mimeType.includes('mp4') ? 'mp4' : 'webm';
                 
-                // Kích hoạt cơ chế tải tệp cưỡng bức an toàn
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(finalBlob);
-                a.download = `video_co_phude.${extension}`;
+                a.download = `video_tieng_anh_sub_viet.${extension}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -435,28 +536,23 @@
             encoder.start();
             playback.play();
 
-            // Vòng lặp vẽ liên tục hình ảnh video + chữ phụ đề lên canvas ẩn
             function drawFrame() {
                 if (playback.paused || playback.ended) {
                     encoder.stop();
                     return;
                 }
                 
-                // 1. Vẽ hình ảnh video gốc
                 ctx.drawImage(playback, 0, 0, canvas.width, canvas.height);
                 
-                // 2. Kiểm tra xem giây hiện tại có chữ không để vẽ đè lên
                 const checkTime = playback.currentTime;
                 const activeSub = srtRecords.find(sub => checkTime >= sub.start && checkTime <= sub.end);
                 
                 if (activeSub) {
-                    // Vẽ nền đen cho chữ dễ đọc
                     ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
                     ctx.fillRect(40, canvas.height - 70, canvas.width - 80, 45);
 
-                    // Vẽ chữ phụ đề màu trắng
                     ctx.fillStyle = "#ffffff";
-                    ctx.font = "bold 20px Arial";
+                    ctx.font = "bold 18px Arial";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
                     ctx.fillText(activeSub.text, canvas.width / 2, canvas.height - 48);
@@ -472,3 +568,4 @@
     </script>
 </body>
 </html>
+          
