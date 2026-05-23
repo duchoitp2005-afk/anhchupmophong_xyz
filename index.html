@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biên Tập Phụ Đề Thủ Công V9</title>
+    <title>Biên Tập & Xuất Video Có Sẵn Phụ Đề</title>
     <style>
         body {
             background-color: #121212;
@@ -60,6 +60,11 @@
             display: none;
         }
 
+        /* Canvas ẩn dùng để trộn chữ vào video */
+        canvas {
+            display: none;
+        }
+
         .subtitle-overlay {
             position: absolute;
             bottom: 30px;
@@ -82,7 +87,6 @@
             line-height: 1.4;
         }
 
-        /* Khu vực danh sách phụ đề chỉnh sửa bên dưới */
         .timeline-editor-zone {
             width: 100%;
             max-width: 600px;
@@ -104,7 +108,7 @@
         }
 
         .sub-list {
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -194,23 +198,33 @@
         .btn-start { background-color: #0084ff; border-color: #0084ff; }
         .btn-record { background-color: #e50914; border-color: #e50914; }
         .btn-stop { background-color: #ffaa00; border-color: #ffaa00; color: #000; }
-        .btn-add { background-color: #00a86b; border-color: #00a86b; font-size: 13px; padding: 6px 14px; border-radius: 15px; }
+        .btn-add { background-color: #00a86b; border-color: #00a86b; font-size: 12px; padding: 6px 12px; border-radius: 15px; }
         .btn-download { background-color: #00a86b; border-color: #00a86b; }
-        .btn-sub { background-color: #ff6e00; border-color: #ff6e00; }
+        
+        #loading-text {
+            color: #ffaa00;
+            font-weight: bold;
+            display: none;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <h2>BIÊN TẬP PHỤ ĐỀ THEO THANH TRƯỢT V9 🎬</h2>
-    <div class="tip-text">💡 Cách làm: Quay xong video ➡️ Kéo thanh trượt (Timeline) video đến giây mong muốn ➡️ Bấm "Thêm dòng chữ" để tự ghi phụ đề tại mốc đó!</div>
+    <h2>XUẤT VIDEO DÍNH LIỀN PHỤ ĐỀ V10 🎬</h2>
+    <div class="tip-text">💡 Cách dùng: Quay xong ➡️ Kéo thanh trượt để thêm chữ gõ tay ➡️ Bấm "Bắt đầu xuất video" để hệ thống in chữ trực tiếp lên hình và tải về!</div>
 
     <div class="video-container">
         <video id="preview" autoplay playsinline muted></video>
-        <video id="playback" controls playsinline></video>
+        <video id="playback" playsinline></video>
         <div class="subtitle-overlay">
             <span id="subtitle" class="subtitle-text">Phụ đề hiển thị tại đây...</span>
         </div>
     </div>
+
+    <canvas id="renderCanvas" width="640" height="480"></canvas>
+
+    <div id="loading-text">⏳ Đang xử lý in chữ vào video, vui lòng đợi trong giây lát...</div>
 
     <div class="controls">
         <button id="btn-open" class="btn btn-start" onclick="openCamera()">Mở Camera 📷</button>
@@ -218,17 +232,15 @@
         <button id="btn-start-rec" class="btn btn-record" onclick="startRecording()" style="display: none;">Bắt Đầu Quay 🔴</button>
         <button id="btn-stop-rec" class="btn btn-stop" onclick="stopRecording()" style="display: none;">Xong, Qua Trình Biên Tập ⏹️</button>
         
-        <button id="btn-download" class="btn btn-download" onclick="triggerVideoDownload()" style="display: none;">Tải Video Về 🎬</button>
-        <button id="btn-download-sub" class="btn btn-sub" onclick="triggerSubDownload()" style="display: none;">Tải File Phụ Đề (.srt) 📑</button>
+        <button id="btn-download" class="btn btn-download" onclick="exportVideoWithSubtitles()" style="display: none;">Bắt Đầu Xuất Video Có Sẵn Chữ 🎬</button>
     </div>
 
     <div id="editor-zone" class="timeline-editor-zone" style="display: none;">
         <div class="editor-header">
-            <span style="font-weight: bold; font-size: 14px; color: #ffaa00;">DANH SÁCH DÒNG PHỤ ĐỀ</span>
-            <button class="btn btn-add" onclick="addNewSubtitleAtCurrentTime()">➕ Thêm dòng chữ tại giây hiện tại</button>
+            <span style="font-weight: bold; font-size: 14px; color: #ffaa00;">DANH SÁCH DÒNG PHỤ ĐỀ TỰ GÕ</span>
+            <button class="btn btn-add" onclick="addNewSubtitleAtCurrentTime()">➕ Thêm chữ tại giây này</button>
         </div>
-        <div id="sub-list" class="sub-list">
-            </div>
+        <div id="sub-list" class="sub-list"></div>
     </div>
 
     <script>
@@ -236,26 +248,29 @@
         let recordedChunks = [];
         let streamObj = null;
         let currentFacingMode = 'user';
-        let srtRecords = []; // Mảng chứa các câu phụ đề do bạn tự tạo bằng tay
+        let srtRecords = []; 
 
         const preview = document.getElementById('preview');
         const playback = document.getElementById('playback');
         const subtitleTxt = document.getElementById('subtitle');
         const editorZone = document.getElementById('editor-zone');
         const subListContainer = document.getElementById('sub-list');
+        const canvas = document.getElementById('renderCanvas');
+        const ctx = canvas.getContext('2d');
+        const loadingText = document.getElementById('loading-text');
         
         const btnOpen = document.getElementById('btn-open');
         const btnSwitch = document.getElementById('btn-switch');
         const btnStartRec = document.getElementById('btn-start-rec');
         const btnStopRec = document.getElementById('btn-stop-rec');
         const btnDownload = document.getElementById('btn-download');
-        const btnDownloadSub = document.getElementById('btn-download-sub');
 
         async function openCamera() {
             if (streamObj) streamObj.getTracks().forEach(track => track.stop());
             preview.style.display = 'block';
             playback.style.display = 'none';
             editorZone.style.display = 'none';
+            playback.controls = false;
 
             try {
                 streamObj = await navigator.mediaDevices.getUserMedia({
@@ -281,7 +296,6 @@
             srtRecords = [];
             subtitleTxt.innerText = "...";
             btnDownload.style.display = 'none';
-            btnDownloadSub.style.display = 'none';
             btnSwitch.style.display = 'none';
 
             let options = MediaRecorder.isTypeSupported('video/mp4') ? { mimeType: 'video/mp4' } : {};
@@ -294,21 +308,19 @@
             mediaRecorder.onstop = function() {
                 preview.style.display = 'none';
                 playback.style.display = 'block';
-                editorZone.style.display = 'block'; // Hiển thị khu vực bảng thêm phụ đề tay
+                playback.controls = true; // Hiện thanh trượt khi biên tập
+                editorZone.style.display = 'block'; 
 
                 const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
                 playback.src = URL.createObjectURL(blob);
                 
-                // ĐỒNG BỘ VIDEO CHẠY ĐẾN ĐÂU - CHỮ ĐỔI ĐẾN ĐÓ
                 playback.ontimeupdate = function() {
                     const checkTime = playback.currentTime;
-                    // Tìm xem giây hiện tại có câu phụ đề nào trùng mốc không
                     const activeSub = srtRecords.find(sub => checkTime >= sub.start && checkTime <= sub.end);
                     subtitleTxt.innerText = activeSub ? activeSub.text : "...";
                 };
 
                 btnDownload.style.display = 'inline-block';
-                btnDownloadSub.style.display = 'inline-block';
                 btnSwitch.style.display = 'inline-block';
                 btnOpen.style.display = 'inline-block';
                 btnOpen.innerText = "Quay Lại 📷";
@@ -325,29 +337,21 @@
             btnStopRec.style.display = 'none';
         }
 
-        // HÀM TỰ THÊM PHỤ ĐỀ THEO GIÂY TRÊN THANH TRƯỢT
         function addNewSubtitleAtCurrentTime() {
-            const currentTime = playback.currentTime; // Lấy giây chính xác mà thanh trượt đang dừng
-            
-            // Tạo một khối phụ đề mặc định kéo dài 3 giây kể từ điểm dừng trượt
+            const currentTime = playback.currentTime;
             const newSub = {
                 id: Date.now(),
                 start: parseFloat(currentTime.toFixed(2)),
                 end: parseFloat((currentTime + 3).toFixed(2)),
-                text: "Nhập nội dung chữ vào đây..."
+                text: "Gõ phụ đề tiếng Việt..."
             };
-
             srtRecords.push(newSub);
-            renderEditorList(); // Vẽ lại danh sách ô nhập chữ bên dưới
+            renderEditorList();
         }
 
-        // VẼ GIAO DIỆN CÁC Ô NHẬP LIỆU PHỤ ĐỀ TRÊN MÀN HÌNH
         function renderEditorList() {
             subListContainer.innerHTML = "";
-            
-            // Sắp xếp danh sách câu theo thời gian tăng dần cho dễ quản lý
             srtRecords.sort((a, b) => a.start - b.start);
-
             srtRecords.forEach((item, index) => {
                 const subItem = document.createElement('div');
                 subItem.className = 'sub-item';
@@ -355,7 +359,7 @@
                     <div class="sub-item-meta">
                         <span>Câu ${index + 1} | Từ giây:</span>
                         <input type="number" step="0.1" value="${item.start}" onchange="updateSubTime(${item.id}, 'start', this.value)">
-                        <span>đến giây:</span>
+                        <span>đến:</span>
                         <input type="number" step="0.1" value="${item.end}" onchange="updateSubTime(${item.id}, 'end', this.value)">
                         <button class="btn-delete" onclick="deleteSub(${item.id})">Xóa ❌</button>
                     </div>
@@ -365,70 +369,105 @@
             });
         }
 
-        // CẬP NHẬT THỜI GIAN KHI BẠN SỬA SỐ GIÂY
         function updateSubTime(id, field, value) {
             const sub = srtRecords.find(item => item.id === id);
-            if (sub) {
-                sub[field] = parseFloat(parseFloat(value).toFixed(2));
-            }
+            if (sub) sub[field] = parseFloat(parseFloat(value).toFixed(2));
         }
 
-        // CẬP NHẬT CHỮ KHI BẠN GÕ VÀO Ô CHỮ KHỐI ĐÓ
         function updateSubText(id, value) {
             const sub = srtRecords.find(item => item.id === id);
-            if (sub) {
-                sub.text = value.trim();
-            }
+            if (sub) sub.text = value.trim();
         }
 
-        // XÓA MỘT DÒNG CHỮ KHỎI DANH SÁCH
         function deleteSub(id) {
             srtRecords = srtRecords.filter(item => item.id !== id);
             renderEditorList();
         }
 
-        function triggerVideoDownload() {
-            const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-            const extension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `video_goc.${extension}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
+        // BIẾN ĐỔI QUAN TRỌNG: IN CHỮ VÀO HÌNH VÀ XUẤT FILE VIDEO DUY NHẤT
+        function exportVideoWithSubtitles() {
+            playback.pause();
+            playback.currentTime = 0; // Chạy lại từ đầu để quay video mới
+            playback.controls = false; // Ẩn thanh trượt gốc tránh bị dính vào video mới
+            
+            loadingText.style.display = 'block';
+            btnDownload.disabled = true;
 
-        // XUẤT FILE PHỤ ĐỀ .SRT CHUẨN QUỐC TẾ TỪ CÁC ĐOẠN BẠN TỰ GÕ TAY
-        function triggerSubDownload() {
-            if (srtRecords.length === 0) {
-                alert("Bạn chưa thêm câu phụ đề nào cả!");
-                return;
+            const exportChunks = [];
+            // Lấy luồng hình ảnh từ canvas kết hợp luồng âm thanh gốc của video
+            const canvasStream = canvas.captureStream(25); 
+            
+            let audioTrack = null;
+            if (playback.captureStream) {
+                audioTrack = playback.captureStream().getAudioTracks()[0];
+            } else if (playback.webkitCaptureStream) {
+                audioTrack = playback.webkitCaptureStream().getAudioTracks()[0];
             }
             
-            // Sắp xếp lại lần cuối trước khi xuất file
-            srtRecords.sort((a, b) => a.start - b.start);
+            if (audioTrack) {
+                canvasStream.addTrack(audioTrack);
+            }
 
-            let srtContent = '';
-            srtRecords.forEach((item, index) => {
-                const startFormatted = formatTimeSRT(item.start);
-                const endFormatted = formatTimeSRT(item.end);
-                srtContent += `${index + 1}\n${startFormatted} --> ${endFormatted}\n${item.text}\n\n`;
-            });
+            let options = MediaRecorder.isTypeSupported('video/mp4') ? { mimeType: 'video/mp4' } : {};
+            const encoder = new MediaRecorder(canvasStream, options);
+
+            encoder.ondataavailable = function(e) {
+                if (e.data && e.data.size > 0) exportChunks.push(e.data);
+            };
+
+            encoder.onstop = function() {
+                loadingText.style.display = 'none';
+                btnDownload.disabled = false;
+                playback.controls = true;
+
+                const finalBlob = new Blob(exportChunks, { type: encoder.mimeType });
+                const extension = encoder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+                
+                // Kích hoạt cơ chế tải tệp cưỡng bức an toàn
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(finalBlob);
+                a.download = `video_co_phude.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            encoder.start();
+            playback.play();
+
+            // Vòng lặp vẽ liên tục hình ảnh video + chữ phụ đề lên canvas ẩn
+            function drawFrame() {
+                if (playback.paused || playback.ended) {
+                    encoder.stop();
+                    return;
+                }
+                
+                // 1. Vẽ hình ảnh video gốc
+                ctx.drawImage(playback, 0, 0, canvas.width, canvas.height);
+                
+                // 2. Kiểm tra xem giây hiện tại có chữ không để vẽ đè lên
+                const checkTime = playback.currentTime;
+                const activeSub = srtRecords.find(sub => checkTime >= sub.start && checkTime <= sub.end);
+                
+                if (activeSub) {
+                    // Vẽ nền đen cho chữ dễ đọc
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                    ctx.fillRect(40, canvas.height - 70, canvas.width - 80, 45);
+
+                    // Vẽ chữ phụ đề màu trắng
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 20px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(activeSub.text, canvas.width / 2, canvas.height - 48);
+                }
+                
+                requestAnimationFrame(drawFrame);
+            }
             
-            const encodedUri = "data:text/plain;charset=utf-8," + encodeURIComponent(srtContent);
-            const a = document.createElement('a');
-            a.href = encodedUri;
-            a.download = 'phude_tu_ghi_tay.srt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        function formatTimeSRT(seconds) {
-            const date = new Date(null);
-            date.setSeconds(seconds);
-            const ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
-            return date.toISOString().substr(11, 8) + ',' + ms;
+            playback.onplay = function() {
+                drawFrame();
+            };
         }
     </script>
 </body>
