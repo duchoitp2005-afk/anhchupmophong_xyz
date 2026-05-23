@@ -1,254 +1,317 @@
-import React, { useState, useEffect, useRef } from 'react';
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dazz Cam Web App</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-// === THÔNG SỐ CẤU HÌNH BỘ LỌC MÀU PHIM ===
-const FILTER_CONFIG = {
-    warmth: 0.12,        
-    contrast: 1.15,      
-    vignette: 0.55,      
-    grainOpacity: 0.08,  
-    lightLeakColor: 'rgba(255, 95, 0, 0.45)', 
-};
+        h2 {
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: #f5f5f5;
+        }
 
-// === HÀM XỬ LÝ LÕI ÁP DỤNG BỘ LỌC MÀU ===
-const applyFilmFilter = (sourceImageDataUrl) => {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.src = sourceImageDataUrl;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const w = canvas.width;
-            const h = canvas.height;
+        /* Khung hiển thị ảnh/camera ở giữa */
+        .preview-container {
+            width: 100%;
+            max-width: 500px;
+            min-height: 380px;
+            background-color: #1a1a1a;
+            border-radius: 16px;
+            border: 1px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
 
-            ctx.drawImage(img, 0, 0);
+        .preview-container video, .preview-container img {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: contain;
+            display: none; /* Ẩn mặc định, hiện bằng JS */
+        }
 
-            // 1. Chỉnh sửa Pixel (Màu ấm & Tương phản)
-            const imageData = ctx.getImageData(0, 0, w, h);
-            const data = imageData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i];
-                let g = data[i + 1];
-                let b = data[i + 2];
+        .placeholder-text {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+        }
 
-                r = (((r / 255) - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
-                g = (((g / 255) - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
-                b = (((b / 255) - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
+        /* Bàn điều khiển nút bấm */
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
 
-                r = r + (255 - r) * FILTER_CONFIG.warmth;
-                g = g + (255 - g) * (FILTER_CONFIG.warmth * 0.7);
-                b = b - (b * FILTER_CONFIG.warmth * 0.3);
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
-                data[i] = Math.min(255, Math.max(0, r));
-                data[i + 1] = Math.min(255, Math.max(0, g));
-                data[i + 2] = Math.min(255, Math.max(0, b));
+        .btn {
+            background-color: #222;
+            color: white;
+            border: 1px solid #444;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #333;
+            transform: scale(1.02);
+        }
+
+        .btn-capture { background-color: #e50914; border-color: #e50914; }
+        .btn-capture:hover { background-color: #b80710; }
+
+        .btn-apply { background-color: #ff6e00; border-color: #ff6e00; font-weight: bold; }
+        .btn-apply:hover { background-color: #e06100; }
+
+        .btn-download { background-color: #0084ff; border-color: #0084ff; text-decoration: none; display: inline-block; }
+        .btn-download:hover { background-color: #006cd2; }
+    </style>
+</head>
+<body>
+
+    <h2>DAZZ WEBCAM 📸</h2>
+
+    <div class="preview-container">
+        <p id="placeholder" class="placeholder-text">Mở máy ảnh hoặc tải ảnh lên để bắt đầu</p>
+        <video id="video" autoplay playsinline></video>
+        <img id="img-original" alt="Original">
+        <img id="img-processed" alt="Dazz Result">
+    </div>
+
+    <div class="controls">
+        <div class="btn-group">
+            <button id="btn-camera" class="btn" onclick="startCamera()">Mở Máy Ảnh 📷</button>
+            <button id="btn-capture" class="btn btn-capture" onclick="capturePhoto()" style="display: none;">Bấm Chụp ⚪</button>
+            
+            <label class="btn">
+                Tải Ảnh Lên 📁
+                <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload()" style="display: none;">
+            </label>
+        </div>
+
+        <div class="btn-group">
+            <button id="btn-filter" class="btn btn-apply" onclick="applyDazzFilter()" style="display: none;">Áp Dụng Bộ Lọc D-Classic ✨</button>
+            <a id="btn-download" class="btn btn-download" download="dazz_photo.jpg" style="display: none;">Lưu Về Máy 💾</a>
+        </div>
+    </div>
+
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        // CẤU HÌNH BỘ LỌC PHIM
+        const FILTER_CONFIG = {
+            warmth: 0.15,         // Độ ấm màu vàng/đỏ
+            contrast: 1.25,       // Độ tương phản
+            vignette: 0.55,       // Độ tối 4 góc ảnh
+            grainOpacity: 0.12,   // Mật độ hạt nhiễu phim
+            lightLeakColor: 'rgba(255, 95, 0, 0.22)' // Màu rò rỉ sáng cam
+        };
+
+        let streamObj = null;
+        let activeImageSrc = null;
+
+        const video = document.getElementById('video');
+        const imgOriginal = document.getElementById('img-original');
+        const imgProcessed = document.getElementById('img-processed');
+        const placeholder = document.getElementById('placeholder');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Nút điều khiển UI
+        const btnCamera = document.getElementById('btn-camera');
+        const btnCapture = document.getElementById('btn-capture');
+        const btnFilter = document.getElementById('btn-filter');
+        const btnDownload = document.getElementById('btn-download');
+
+        // BƯỚC 2: TÍCH HỢP CAMERA & UPLOAD
+        function resetUI() {
+            video.style.display = 'none';
+            imgOriginal.style.display = 'none';
+            imgProcessed.style.display = 'none';
+            placeholder.style.display = 'none';
+            btnFilter.style.display = 'none';
+            btnDownload.style.display = 'none';
+        }
+
+        async function startCamera() {
+            resetUI();
+            stopCamera();
+            try {
+                streamObj = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+                video.srcObject = streamObj;
+                video.style.display = 'block';
+                btnCamera.style.display = 'none';
+                btnCapture.style.display = 'inline-block';
+            } catch (err) {
+                alert("Không thể truy cập camera. Hãy kiểm tra quyền trình duyệt.");
+                placeholder.style.display = 'block';
             }
-            ctx.putImageData(imageData, 0, 0);
+        }
 
-            // 2. Tạo hiệu ứng Vignette (Tối góc)
-            ctx.globalCompositeOperation = 'multiply';
-            const vignetteGradient = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.sqrt((w/2)**2 + (h/2)**2));
-            vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
-            vignetteGradient.addColorStop(1, `rgba(0,0,0,${FILTER_CONFIG.vignette})`);
-            ctx.fillStyle = vignetteGradient;
-            ctx.fillRect(0, 0, w, h);
+        function stopCamera() {
+            if (streamObj) {
+                streamObj.getTracks().forEach(track => track.stop());
+                streamObj = null;
+            }
+            btnCamera.style.display = 'inline-block';
+            btnCapture.style.display = 'none';
+        }
 
-            // 3. Tạo hiệu ứng rò rỉ ánh sáng (Light Leak)
-            ctx.globalCompositeOperation = 'screen';
-            const leakGradient = ctx.createLinearGradient(0, 0, w * 0.4, h * 0.4);
-            leakGradient.addColorStop(0, FILTER_CONFIG.lightLeakColor);
-            leakGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = leakGradient;
-            ctx.fillRect(0, 0, w, h);
+        function capturePhoto() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            activeImageSrc = canvas.toDataURL('image/jpeg');
+            stopCamera();
+            resetUI();
+            
+            imgOriginal.src = activeImageSrc;
+            imgOriginal.style.display = 'block';
+            btnFilter.style.display = 'inline-block';
+        }
 
-            // 4. Tạo hiệu ứng độ hạt phim (Grain)
-            ctx.globalCompositeOperation = 'overlay';
-            for (let i = 0; i < h; i += 3) { // Tăng bước nhảy lên 3 để tối ưu hiệu năng vẽ hạt
-                for (let j = 0; j < w; j += 3) {
-                    if (Math.random() > 0.5) {
-                        ctx.fillStyle = `rgba(128, 128, 128, ${FILTER_CONFIG.grainOpacity})`;
-                        ctx.fillRect(j, i, 2, 2);
+        function handleFileUpload() {
+            stopCamera();
+            const file = document.getElementById('file-input').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    activeImageSrc = e.target.result;
+                    resetUI();
+                    imgOriginal.src = activeImageSrc;
+                    imgOriginal.style.display = 'block';
+                    btnFilter.style.display = 'inline-block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // BƯỚC 3 & 4: THUẬT TOÁN XỬ LÝ ẢNH MÁY PHIM
+        function applyDazzFilter() {
+            if (!activeImageSrc) return;
+
+            const img = new Image();
+            img.src = activeImageSrc;
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                // 3B. Xử lý sửa ma trận pixel (Màu ấm, Tương phản)
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+
+                    // Tương phản (Contrast)
+                    r = ((r / 255 - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
+                    g = ((g / 255 - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
+                    b = ((b / 255 - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
+
+                    // Độ ấm film màu (Warmth)
+                    r += FILTER_CONFIG.warmth * 35;
+                    g += FILTER_CONFIG.warmth * 12;
+                    b -= FILTER_CONFIG.warmth * 15;
+
+                    data[i] = Math.min(255, Math.max(0, r));
+                    data[i + 1] = Math.min(255, Math.max(0, g));
+                    data[i + 2] = Math.min(255, Math.max(0, b));
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                // 4A. Hiệu ứng tối góc (Vignette)
+                const gradient = ctx.createRadialGradient(
+                    canvas.width / 2, canvas.height / 2, 0,
+                    canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.7
+                );
+                gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, `rgba(0,0,0,${FILTER_CONFIG.vignette})`);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Hiệu ứng rò rỉ sáng (Light Leak)
+                ctx.fillStyle = FILTER_CONFIG.lightLeakColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, canvas.width * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tạo hạt nhiễu (Film Grain)
+                for (let x = 0; x < canvas.width; x += 2) {
+                    for (let y = 0; y < canvas.height; y += 2) {
+                        if (Math.random() < FILTER_CONFIG.grainOpacity) {
+                            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.13)';
+                            ctx.fillRect(x, y, 2, 2);
+                        }
                     }
                 }
-            }
 
-            // 5. Vẽ Tem Ngày Tháng (Timestamp) đúng chuẩn Retro
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = '#ff6b00'; 
-            ctx.font = `bold ${w * 0.038}px 'Courier New', Courier, monospace`;
-            ctx.textAlign = 'right';
-            
-            // Lấy thời gian thực tế dạng YY MM DD
-            const today = new Date();
-            const year = today.getFullYear().toString().substr(-2);
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const timestamp = `'${year} ${month} ${day}`;
+                // 4B. In dấu thời gian (Timestamp)
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = String(now.getFullYear()).substring(2);
+                const dateString = `'${year} ${month} ${day}`;
 
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-            ctx.shadowBlur = w * 0.005;
-            ctx.fillText(timestamp, w * 0.95, h * 0.95);
-
-            // Xuất file ảnh JPEG chất lượng cao (95%)
-            resolve(canvas.toDataURL('image/jpeg', 0.95));
-        };
-    });
-};
-
-export default function CameraApp() {
-    const [previewImage, setPreviewImage] = useState(null);
-    const [isCameraReady, setIsCameraReady] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    
-    const videoRef = useRef(null);
-    const streamRef = useRef(null);
-
-    // Khởi động Camera Live
-    useEffect(() => {
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment', aspectRatio: 3/4 }, 
-                    audio: false 
-                });
-                if (videoRef.current) { 
-                    videoRef.current.srcObject = stream; 
-                    streamRef.current = stream; 
-                    setIsCameraReady(true); 
-                }
-            } catch (err) { 
-                setIsCameraReady(false); 
-            }
-        }
-        if (!previewImage) { startCamera(); }
-        return () => { stopCamera(); };
-    }, [previewImage]);
-
-    const stopCamera = () => {
-        if (streamRef.current) { streamRef.current.getTracks().forEach(track => track.stop()); }
-        setIsCameraReady(false);
-    };
-
-    // Chụp và Tráng phim
-    const capturePhoto = async () => {
-        if (!isCameraReady || !videoRef.current) return;
-        setIsLoading(true);
-
-        const video = videoRef.current;
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        const originalDataUrl = canvas.toDataURL('image/jpeg');
-        stopCamera();
-
-        const processedImageUrl = await applyFilmFilter(originalDataUrl);
-        setPreviewImage(processedImageUrl);
-        setIsLoading(false);
-    };
-
-    // --- BƯỚC 5: TẢI ẢNH VỀ THIẾT BỊ ---
-    const downloadPhoto = () => {
-        if (!previewImage) return;
-        
-        // Tạo một thẻ <a> ngầm để kích hoạt download
-        const downloadLink = document.createElement('a');
-        downloadLink.href = previewImage;
-        downloadLink.download = `DazzCam_Retro_${Date.now()}.jpg`; // Đặt tên file kèm mã thời gian
-        
-        document.body.appendChild(downloadLink);
-        downloadLink.click(); // Kích hoạt sự kiện click tải về
-        document.body.removeChild(downloadLink); // Xóa thẻ sau khi hoàn thành
-    };
-
-    // Hỗ trợ chia sẻ ảnh nhanh qua hệ thống (Nếu dùng trên trình duyệt điện thoại)
-    const sharePhoto = async () => {
-        if (!previewImage) return;
-        try {
-            const response = await fetch(previewImage);
-            const blob = await response.blob();
-            const file = new File([blob], 'retro_photo.jpg', { type: 'image/jpeg' });
-            
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'Retro Camera Photo',
-                    text: 'Ảnh chụp từ ứng dụng Retro Web Cam!',
-                });
-            } else {
-                alert("Trình duyệt của bạn không hỗ trợ tính năng chia sẻ trực tiếp. Hãy dùng nút Tải về!");
-            }
-        } catch (error) {
-            console.error('Lỗi chia sẻ:', error);
-        }
-    };
-
-    const resetCamera = () => { setPreviewImage(null); };
-
-    return (
-        <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-between p-4 font-sans select-none">
-            
-            {/* Header */}
-            <header className="w-full max-w-md flex justify-between items-center py-2 border-b border-neutral-800">
-                <h1 className="text-xl font-black text-amber-500 tracking-widest bg-neutral-900 px-3 py-1 rounded-md border border-neutral-800">RETRO.CAM</h1>
-                {previewImage && (
-                    <button onClick={resetCamera} className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-md active:scale-95 transition-transform">
-                        ↩️ Chụp lại
-                    </button>
-                )}
-            </header>
-
-            {/* Viewport hiển thị */}
-            <main className="w-full max-w-md aspect-[3/4] my-4 bg-neutral-900 rounded-2xl overflow-hidden relative border border-neutral-800 shadow-2xl flex items-center justify-center">
-                {!previewImage && <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover transform -scale-x-100 ${isCameraReady ? 'opacity-100' : 'opacity-0'} transition-opacity`} />}
-                {previewImage && <img src={previewImage} alt="Processed" className="w-full h-full object-cover" />}
-
-                {isLoading && (
-                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 backdrop-blur-sm">
-                        <div className="text-4xl anonymity animate-bounce">🎞️</div>
-                        <p className="text-sm mt-4 text-neutral-300 font-medium tracking-wide">Đang tráng phim...</p>
-                    </div>
-                )}
-            </main>
-
-            {/* Control Panel / Các nút bấm tải và xuất ảnh */}
-            <footer className="w-full max-w-md bg-neutral-900/50 p-6 rounded-3xl border border-neutral-900 backdrop-blur-md flex flex-col gap-4">
+                const fontSize = Math.max(16, Math.floor(canvas.width * 0.038));
+                ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+                ctx.fillStyle = 'rgba(255, 105, 0, 0.85)';
                 
-                {previewImage ? (
-                    // === GIAO DIỆN KHI ĐÃ CÓ ẢNH THÀNH PHẨM ===
-                    <div className="flex flex-col gap-3 animate-fadeIn">
-                        <button 
-                            onClick={downloadPhoto} 
-                            className="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.99]"
-                        >
-                            <span>📥</span> Tải tác phẩm về máy
-                        </button>
-                        <button 
-                            onClick={sharePhoto} 
-                            className="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.99]"
-                        >
-                            <span>📤</span> Chia sẻ ảnh nhanh
-                        </button>
-                    </div>
-                ) : (
-                    // === GIAO DIỆN KHI ĐANG Ở CHẾ ĐỘ CHỤP LIVE ===
-                    <div className="flex justify-center items-center py-2">
-                        <button 
-                            onClick={capturePhoto} 
-                            disabled={!isCameraReady || isLoading}
-                            className={`w-20 h-20 rounded-full flex items-center justify-center border-4 border-neutral-800 shadow-xl transition-all p-1 active:scale-95 ${
-                                (!isCameraReady || isLoading) ? 'opacity-40 cursor-not-allowed' : 'bg-neutral-100 hover:bg-white'
-                            }`}
-                        >
-                            <div className="w-full h-full rounded-full border-2 border-neutral-950 bg-neutral-200"></div>
-                        </button>
-                    </div>
-                )}
+                ctx.shadowColor = 'rgba(40, 10, 0, 0.6)';
+                ctx.shadowBlur = 4;
+
+                const textX = canvas.width - ctx.measureText(dateString).width - (canvas.width * 0.05);
+                const textY = canvas.height - (canvas.height * 0.05);
+                ctx.fillText(dateString, textX, textY);
+                ctx.shadowBlur = 0;
+
+                // BƯỚC 5: XUẤT ẢNH THÀNH PHẨM
+                const resultDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                resetUI();
+                imgProcessed.src = resultDataUrl;
+                imgProcessed.style.display = 'block';
                 
-            </footer>
-        </div>
-    );
-}
-            
+                btnDownload.href = resultDataUrl;
+                btnDownload.style.display = 'inline-block';
+                btnFilter.style.display = 'none';
+            };
+        }
+    </script>
+</body>
+</html>
