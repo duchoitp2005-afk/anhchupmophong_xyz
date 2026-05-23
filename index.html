@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quay Video & Biên Tập Phụ Đề</title>
+    <title>Quay Video & Sửa Phụ Đề V6</title>
     <style>
         body {
             background-color: #121212;
@@ -67,7 +67,6 @@
             object-fit: cover;
         }
 
-        /* Video dùng để xem lại */
         #playback {
             display: none;
         }
@@ -95,7 +94,6 @@
             border: 2px solid transparent;
             outline: none;
             cursor: text;
-            transition: all 0.2s ease;
         }
 
         .subtitle-text:focus {
@@ -132,21 +130,19 @@
         .btn-record { background-color: #e50914; border-color: #e50914; }
         .btn-stop { background-color: #ffaa00; border-color: #ffaa00; color: #000; }
         
-        .btn-download { background-color: #00a86b; border-color: #00a86b; text-decoration: none; display: inline-block; }
-        .btn-sub { background-color: #ff6e00; border-color: #ff6e00; text-decoration: none; display: inline-block; }
+        .btn-download { background-color: #00a86b; border-color: #00a86b; }
+        .btn-sub { background-color: #ff6e00; border-color: #ff6e00; }
     </style>
 </head>
 <body>
 
-    <h2>QUAY & BIÊN TẬP VIDEO PHỤ ĐỀ 🎬</h2>
+    <h2>QUAY & BIÊN TẬP VIDEO PHỤ ĐỀ V6 🎬</h2>
     <div id="status" class="status-badge">ĐANG XEM LẠI & CHỈNH SỬA</div>
-    <div class="tip-text" id="tip">💡 Mẹo: Sau khi quay xong, bạn có thể vừa xem lại video vừa sửa trực tiếp các câu phụ đề bị lỗi theo mốc thời gian!</div>
+    <div class="tip-text" id="tip">💡 Mẹo: Bật camera ➡️ Quay video ➡️ Sửa phụ đề lỗi ➡️ Tải file về máy!</div>
 
     <div class="video-container">
         <video id="preview" autoplay playsinline muted></video>
-        
         <video id="playback" controls playsinline></video>
-
         <div class="subtitle-overlay">
             <span id="subtitle" class="subtitle-text" contenteditable="true" onfocus="pauseAudioAndRec()" onblur="saveEditedText()">Bật camera để bắt đầu...</span>
         </div>
@@ -158,8 +154,8 @@
         <button id="btn-start-rec" class="btn btn-record" onclick="startRecording()" style="display: none;">Bắt Đầu Quay 🔴</button>
         <button id="btn-stop-rec" class="btn btn-stop" onclick="stopRecording()" style="display: none;">Xong, Xem Lại & Sửa ⏹️</button>
         
-        <a id="btn-download" class="btn btn-download" style="display: none;">Tải Video Về 🎬</a>
-        <a id="btn-download-sub" class="btn btn-sub" style="display: none;">Tải File Phụ Đề (.srt) 📑</a>
+        <button id="btn-download" class="btn btn-download" onclick="triggerVideoDownload()" style="display: none;">Tải Video Về 🎬</button>
+        <button id="btn-download-sub" class="btn btn-sub" onclick="triggerSubDownload()" style="display: none;">Tải Phụ Đề (.srt) 📑</button>
     </div>
 
     <script>
@@ -171,8 +167,9 @@
         let currentFacingMode = 'user';
 
         let startTime;
-        let srtRecords = []; // Mảng chứa danh sách toàn bộ các câu phụ đề
+        let srtRecords = [];
         let currentSubIndex = 0;
+        let finalVideoBlob = null; // Lưu trữ blob video toàn cục
 
         const preview = document.getElementById('preview');
         const playback = document.getElementById('playback');
@@ -241,7 +238,6 @@
                 if (text.trim() !== "") {
                     subtitleTxt.innerText = text;
 
-                    // Nếu là câu nói đã hoàn thành, ghi nhận mốc thời gian xuất hiện
                     if (finalTranscript) {
                         const currentTime = (Date.now() - startTime) / 1000;
                         const startPoint = srtRecords.length > 0 ? srtRecords[srtRecords.length - 1].endRaw : 0;
@@ -263,41 +259,27 @@
             };
         }
 
-        // KHI NGƯỜI DÙNG CLICK VÀO Ô CHỮ ĐỂ SỬA
         function pauseAudioAndRec() {
             isUserEditing = true;
             if (recognition) try { recognition.stop(); } catch(e) {}
-            
-            // Nếu đang ở chế độ xem lại, tạm dừng video để người dùng thong thả sửa chữ
-            if (!playback.paused) {
-                playback.pause();
-            }
+            if (!playback.paused) playback.pause();
         }
 
-        // KHI SỬA CHỮ XONG VÀ BẤM RA NGOÀI (LƯU LẠI CHỮ ĐÃ SỬA VÀO ĐÚNG ĐOẠN ĐANG PHÁT)
         function saveEditedText() {
             isUserEditing = false;
             const newText = subtitleTxt.innerText.trim();
             const videoTime = playback.currentTime;
 
             if (playback.style.display === 'block' && srtRecords.length > 0) {
-                // Tìm đoạn phụ đề đang tương ứng với mốc thời gian hiện tại của video để cập nhật chữ mới
                 let matchedSub = srtRecords.find(sub => videoTime >= sub.startRaw && videoTime <= sub.endRaw);
-                
-                // Dự phòng nếu không tìm thấy đoạn chính xác, lấy đoạn gần nhất
                 if (!matchedSub) {
                     matchedSub = srtRecords.reduce((prev, curr) => 
                         Math.abs(curr.startRaw - videoTime) < Math.abs(prev.startRaw - videoTime) ? curr : prev
                     );
                 }
-
-                if (matchedSub) {
-                    matchedSub.text = newText; // Ghi đè chữ đã sửa tay vào bộ nhớ dữ liệu
-                    updateSrtDownloadLink(); // Cập nhật lại file tải về
-                }
+                if (matchedSub) matchedSub.text = newText;
             }
 
-            // Nếu đang quay thì bật lại mic
             if (mediaRecorder && mediaRecorder.state === "recording" && recognition) {
                 try { recognition.start(); } catch(e) {}
             }
@@ -308,13 +290,19 @@
             srtRecords = [];
             currentSubIndex = 0;
             startTime = Date.now();
+            finalVideoBlob = null;
             
             subtitleTxt.innerText = "Bắt đầu nói...";
             btnDownload.style.display = 'none';
             btnDownloadSub.style.display = 'none';
             btnSwitch.style.display = 'none';
 
-            let options = MediaRecorder.isTypeSupported('video/mp4') ? { mimeType: 'video/mp4' } : {};
+            let options = {};
+            if (MediaRecorder.isTypeSupported('video/mp4')) {
+                options = { mimeType: 'video/mp4' };
+            } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                options = { mimeType: 'video/webm;codecs=vp9' };
+            }
             
             try {
                 mediaRecorder = new MediaRecorder(streamObj, options);
@@ -327,7 +315,6 @@
             };
 
             mediaRecorder.onstop = function() {
-                // Xử lý lưu nốt câu cuối cùng còn sót lại trên màn hình
                 const totalDuration = (Date.now() - startTime) / 1000;
                 const startPoint = srtRecords.length > 0 ? srtRecords[srtRecords.length - 1].endRaw : 0;
                 if (subtitleTxt.innerText !== "Bắt đầu nói..." && startPoint < totalDuration) {
@@ -339,41 +326,23 @@
                     });
                 }
 
-                // CHUYỂN SANG CHẾ ĐỘ PREVIEW (XEM LẠI VÀ BIÊN TẬP)
                 preview.style.display = 'none';
                 playback.style.display = 'block';
                 statusBadge.style.display = 'inline-block';
-                tipTxt.innerHTML = "🎯 <b>Chế độ biên tập:</b> Hãy bấm chạy video. Khi thấy chữ sai, bấm thẳng vào chữ để sửa. Chữ sửa xong sẽ tự lưu!";
+                tipTxt.innerHTML = "🎯 <b>Chế độ biên tập:</b> Sửa chữ trực tiếp trên màn hình, sau đó bấm nút lưu phía dưới.";
 
-                const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-                const videoUrl = URL.createObjectURL(blob);
+                finalVideoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+                playback.src = URL.createObjectURL(finalVideoBlob);
                 
-                playback.src = videoUrl;
-                
-                // Kích hoạt tính năng đồng bộ chữ chạy theo dòng thời gian video phát lại
                 playback.ontimeupdate = function() {
-                    if (isUserEditing) return; // Không đổi chữ nếu người dùng đang gõ sửa
-                    
+                    if (isUserEditing) return;
                     const checkTime = playback.currentTime;
-                    // Tìm câu phụ đề khớp thời gian
                     const activeSub = srtRecords.find(sub => checkTime >= sub.startRaw && checkTime <= sub.endRaw);
-                    
-                    if (activeSub) {
-                        subtitleTxt.innerText = activeSub.text;
-                    } else {
-                        subtitleTxt.innerText = "...";
-                    }
+                    subtitleTxt.innerText = activeSub ? activeSub.text : "...";
                 };
 
-                // Thiết lập nút tải video gốc
-                const extension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
-                btnDownload.href = videoUrl;
-                btnDownload.download = `video_chua_sub.${extension}`;
                 btnDownload.style.display = 'inline-block';
-
-                // Tạo file phụ đề tải về
-                updateSrtDownloadLink();
-                
+                btnDownloadSub.style.display = 'inline-block';
                 btnSwitch.style.display = 'inline-block';
                 btnOpen.style.display = 'inline-block';
                 btnOpen.innerText = "Quay Lại Lớp Quay 📷";
@@ -393,8 +362,20 @@
             btnStopRec.style.display = 'none';
         }
 
-        // HÀM UPDATE FILE SRT ĐỂ TẢI VỀ KHI CÓ SỰ THAY ĐỔI CHỮ SỬA TAY
-        function updateSrtDownloadLink() {
+        // PHƯƠNG PHÁP TẢI DỰ PHÒNG CƯỠNG BỨC (FORCED DOWNLOAD) - KHÔNG LO LỖI TRÌNH DUYỆT ChẶN
+        function triggerVideoDownload() {
+            if (!finalVideoBlob) return;
+            const extension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+            
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(finalVideoBlob);
+            a.download = `video_export.${extension}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function triggerSubDownload() {
             let srtContent = '';
             srtRecords.forEach((item, index) => {
                 const startFormatted = formatTimeSRT(item.startRaw);
@@ -402,10 +383,13 @@
                 srtContent += `${index + 1}\n${startFormatted} --> ${endFormatted}\n${item.text}\n\n`;
             });
             
-            const srtBlob = new Blob([srtContent], { type: 'text/srt' });
-            btnDownloadSub.href = URL.createObjectURL(srtBlob);
-            btnDownloadSub.download = 'phude_tiengviet_da_sua.srt';
-            btnDownloadSub.style.display = 'inline-block';
+            const srtBlob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(srtBlob);
+            a.download = 'phude_chinhxac.srt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         function formatTimeSRT(seconds) {
