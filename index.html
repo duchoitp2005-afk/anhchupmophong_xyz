@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dazz Cam Web App</title>
+    <title>Web Quay Video Đóng Gói Phụ Đề</title>
     <style>
         body {
             background-color: #121212;
@@ -17,54 +17,81 @@
         }
 
         h2 {
-            letter-spacing: 2px;
-            margin-bottom: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
             color: #f5f5f5;
+            text-align: center;
         }
 
-        /* Khung hiển thị ảnh/camera ở giữa */
-        .preview-container {
+        .tip-text {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: #222;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px dashed #444;
+        }
+
+        /* Khung chứa camera/video */
+        .video-container {
             width: 100%;
-            max-width: 500px;
-            min-height: 380px;
+            max-width: 600px;
             background-color: #1a1a1a;
             border-radius: 16px;
             border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            aspect-ratio: 4/3;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .preview-container video, .preview-container img {
+        video {
             width: 100%;
-            height: auto;
-            max-height: 70vh;
-            object-fit: contain;
-            display: none; /* Ẩn mặc định, hiện bằng JS */
+            height: 100%;
+            object-fit: cover;
         }
 
-        .placeholder-text {
-            color: #666;
-            font-size: 14px;
+        /* Vùng phủ phụ đề hiển thị cho người dùng xem lúc quay */
+        .subtitle-overlay {
+            position: absolute;
+            bottom: 30px;
+            left: 5%;
+            width: 90%;
             text-align: center;
-            padding: 20px;
+            z-index: 10;
         }
 
-        /* Bàn điều khiển nút bấm */
+        .subtitle-text {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 500;
+            display: inline-block;
+            max-width: 100%;
+            word-wrap: break-word;
+            line-height: 1.4;
+            border: 2px solid transparent;
+            outline: none;
+            cursor: text;
+            transition: all 0.2s ease;
+        }
+
+        .subtitle-text:focus {
+            border-color: #0084ff;
+            background-color: rgba(0, 0, 0, 0.95);
+            box-shadow: 0 0 10px rgba(0, 132, 255, 0.5);
+        }
+
+        /* Hệ thống nút bấm */
         .controls {
             margin-top: 25px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            align-items: center;
-            width: 100%;
-            max-width: 500px;
-        }
-
-        .btn-group {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
@@ -80,6 +107,7 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-weight: bold;
         }
 
         .btn:hover {
@@ -87,230 +115,212 @@
             transform: scale(1.02);
         }
 
-        .btn-capture { background-color: #e50914; border-color: #e50914; }
-        .btn-capture:hover { background-color: #b80710; }
+        .btn-start { background-color: #0084ff; border-color: #0084ff; }
+        .btn-start:hover { background-color: #006cd2; }
 
-        .btn-apply { background-color: #ff6e00; border-color: #ff6e00; font-weight: bold; }
-        .btn-apply:hover { background-color: #e06100; }
+        .btn-record { background-color: #e50914; border-color: #e50914; }
+        .btn-record:hover { background-color: #b80710; }
 
-        .btn-download { background-color: #0084ff; border-color: #0084ff; text-decoration: none; display: inline-block; }
-        .btn-download:hover { background-color: #006cd2; }
+        .btn-stop { background-color: #555; border-color: #666; }
+
+        .btn-download { background-color: #00a86b; border-color: #00a86b; text-decoration: none; display: inline-block; }
+        .btn-download:hover { background-color: #008554; }
     </style>
 </head>
 <body>
 
-    <h2>DAZZ WEBCAM 📸</h2>
+    <h2>QUAY VIDEO + IN CHỮ PHỤ ĐỀ 🎙️</h2>
+    <div class="tip-text">💡 Bạn có thể bấm thẳng vào phụ đề để sửa lại chữ lỗi trước khi bấm dừng quay!</div>
 
-    <div class="preview-container">
-        <p id="placeholder" class="placeholder-text">Mở máy ảnh hoặc tải ảnh lên để bắt đầu</p>
-        <video id="video" autoplay playsinline></video>
-        <img id="img-original" alt="Original">
-        <img id="img-processed" alt="Dazz Result">
+    <div class="video-container">
+        <video id="preview" autoplay playsinline muted></video>
+        <div class="subtitle-overlay">
+            <span id="subtitle" class="subtitle-text" contenteditable="true" onfocus="pauseRecognition()" onblur="resumeRecognition()">Phụ đề tự động xuất hiện tại đây...</span>
+        </div>
     </div>
 
     <div class="controls">
-        <div class="btn-group">
-            <button id="btn-camera" class="btn" onclick="startCamera()">Mở Máy Ảnh 📷</button>
-            <button id="btn-capture" class="btn btn-capture" onclick="capturePhoto()" style="display: none;">Bấm Chụp ⚪</button>
-            
-            <label class="btn">
-                Tải Ảnh Lên 📁
-                <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload()" style="display: none;">
-            </label>
-        </div>
-
-        <div class="btn-group">
-            <button id="btn-filter" class="btn btn-apply" onclick="applyDazzFilter()" style="display: none;">Áp Dụng Bộ Lọc D-Classic ✨</button>
-            <a id="btn-download" class="btn btn-download" download="dazz_photo.jpg" style="display: none;">Lưu Về Máy 💾</a>
-        </div>
+        <button id="btn-open" class="btn btn-start" onclick="openCamera()">Mở Camera 📷</button>
+        <button id="btn-start-rec" class="btn btn-record" onclick="startRecording()" style="display: none;">Bắt Đầu Quay 🔴</button>
+        <button id="btn-stop-rec" class="btn btn-stop" onclick="stopRecording()" style="display: none;">Dừng Quay & Lưu ⏹️</button>
+        <a id="btn-download" class="btn btn-download" style="display: none;">Tải Video Có Chữ Về Máy 💾</a>
     </div>
 
-    <canvas id="canvas" style="display: none;"></canvas>
+    <canvas id="record-canvas" style="display: none;"></canvas>
 
     <script>
-        // CẤU HÌNH BỘ LỌC PHIM
-        const FILTER_CONFIG = {
-            warmth: 0.15,         // Độ ấm màu vàng/đỏ
-            contrast: 1.25,       // Độ tương phản
-            vignette: 0.55,       // Độ tối 4 góc ảnh
-            grainOpacity: 0.12,   // Mật độ hạt nhiễu phim
-            lightLeakColor: 'rgba(255, 95, 0, 0.22)' // Màu rò rỉ sáng cam
-        };
-
+        let mediaRecorder;
+        let recordedChunks = [];
         let streamObj = null;
-        let activeImageSrc = null;
+        let recognition;
+        let isUserEditing = false;
+        let canvasRenderLoop;
 
-        const video = document.getElementById('video');
-        const imgOriginal = document.getElementById('img-original');
-        const imgProcessed = document.getElementById('img-processed');
-        const placeholder = document.getElementById('placeholder');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-
-        // Nút điều khiển UI
-        const btnCamera = document.getElementById('btn-camera');
-        const btnCapture = document.getElementById('btn-capture');
-        const btnFilter = document.getElementById('btn-filter');
+        const preview = document.getElementById('preview');
+        const subtitleTxt = document.getElementById('subtitle');
+        const recordCanvas = document.getElementById('record-canvas');
+        const canvasCtx = recordCanvas.getContext('2d');
+        
+        const btnOpen = document.getElementById('btn-open');
+        const btnStartRec = document.getElementById('btn-start-rec');
+        const btnStopRec = document.getElementById('btn-stop-rec');
         const btnDownload = document.getElementById('btn-download');
 
-        // BƯỚC 2: TÍCH HỢP CAMERA & UPLOAD
-        function resetUI() {
-            video.style.display = 'none';
-            imgOriginal.style.display = 'none';
-            imgProcessed.style.display = 'none';
-            placeholder.style.display = 'none';
-            btnFilter.style.display = 'none';
-            btnDownload.style.display = 'none';
-        }
-
-        async function startCamera() {
-            resetUI();
-            stopCamera();
+        async function openCamera() {
             try {
                 streamObj = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
+                    video: { width: 640, height: 480, facingMode: 'user' },
+                    audio: true
                 });
-                video.srcObject = streamObj;
-                video.style.display = 'block';
-                btnCamera.style.display = 'none';
-                btnCapture.style.display = 'inline-block';
+                
+                preview.srcObject = streamObj;
+                btnOpen.style.display = 'none';
+                btnStartRec.style.display = 'inline-block';
+                
+                initSpeechRecognition();
             } catch (err) {
-                alert("Không thể truy cập camera. Hãy kiểm tra quyền trình duyệt.");
-                placeholder.style.display = 'block';
+                alert("Không thể truy cập Camera/Microphone!");
+                console.error(err);
             }
         }
 
-        function stopCamera() {
-            if (streamObj) {
-                streamObj.getTracks().forEach(track => track.stop());
-                streamObj = null;
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                subtitleTxt.innerText = "Trình duyệt không hỗ trợ nhận diện (Hãy dùng Google Chrome).";
+                return;
             }
-            btnCamera.style.display = 'inline-block';
-            btnCapture.style.display = 'none';
-        }
 
-        function capturePhoto() {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            activeImageSrc = canvas.toDataURL('image/jpeg');
-            stopCamera();
-            resetUI();
-            
-            imgOriginal.src = activeImageSrc;
-            imgOriginal.style.display = 'block';
-            btnFilter.style.display = 'inline-block';
-        }
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'vi-VN'; 
 
-        function handleFileUpload() {
-            stopCamera();
-            const file = document.getElementById('file-input').files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    activeImageSrc = e.target.result;
-                    resetUI();
-                    imgOriginal.src = activeImageSrc;
-                    imgOriginal.style.display = 'block';
-                    btnFilter.style.display = 'inline-block';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
+            recognition.onresult = function(event) {
+                if (isUserEditing) return;
 
-        // BƯỚC 3 & 4: THUẬT TOÁN XỬ LÝ ẢNH MÁY PHIM
-        function applyDazzFilter() {
-            if (!activeImageSrc) return;
+                let interimTranscript = '';
+                let finalTranscript = '';
 
-            const img = new Image();
-            img.src = activeImageSrc;
-            img.onload = function() {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-
-                // 3B. Xử lý sửa ma trận pixel (Màu ấm, Tương phản)
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
-
-                for (let i = 0; i < data.length; i += 4) {
-                    let r = data[i];
-                    let g = data[i + 1];
-                    let b = data[i + 2];
-
-                    // Tương phản (Contrast)
-                    r = ((r / 255 - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
-                    g = ((g / 255 - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
-                    b = ((b / 255 - 0.5) * FILTER_CONFIG.contrast + 0.5) * 255;
-
-                    // Độ ấm film màu (Warmth)
-                    r += FILTER_CONFIG.warmth * 35;
-                    g += FILTER_CONFIG.warmth * 12;
-                    b -= FILTER_CONFIG.warmth * 15;
-
-                    data[i] = Math.min(255, Math.max(0, r));
-                    data[i + 1] = Math.min(255, Math.max(0, g));
-                    data[i + 2] = Math.min(255, Math.max(0, b));
-                }
-                ctx.putImageData(imageData, 0, 0);
-
-                // 4A. Hiệu ứng tối góc (Vignette)
-                const gradient = ctx.createRadialGradient(
-                    canvas.width / 2, canvas.height / 2, 0,
-                    canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.7
-                );
-                gradient.addColorStop(0, 'rgba(0,0,0,0)');
-                gradient.addColorStop(1, `rgba(0,0,0,${FILTER_CONFIG.vignette})`);
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // Hiệu ứng rò rỉ sáng (Light Leak)
-                ctx.fillStyle = FILTER_CONFIG.lightLeakColor;
-                ctx.beginPath();
-                ctx.arc(0, 0, canvas.width * 0.45, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Tạo hạt nhiễu (Film Grain)
-                for (let x = 0; x < canvas.width; x += 2) {
-                    for (let y = 0; y < canvas.height; y += 2) {
-                        if (Math.random() < FILTER_CONFIG.grainOpacity) {
-                            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.13)';
-                            ctx.fillRect(x, y, 2, 2);
-                        }
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
                     }
                 }
 
-                // 4B. In dấu thời gian (Timestamp)
-                const now = new Date();
-                const day = String(now.getDate()).padStart(2, '0');
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const year = String(now.getFullYear()).substring(2);
-                const dateString = `'${year} ${month} ${day}`;
-
-                const fontSize = Math.max(16, Math.floor(canvas.width * 0.038));
-                ctx.font = `bold ${fontSize}px "Courier New", monospace`;
-                ctx.fillStyle = 'rgba(255, 105, 0, 0.85)';
-                
-                ctx.shadowColor = 'rgba(40, 10, 0, 0.6)';
-                ctx.shadowBlur = 4;
-
-                const textX = canvas.width - ctx.measureText(dateString).width - (canvas.width * 0.05);
-                const textY = canvas.height - (canvas.height * 0.05);
-                ctx.fillText(dateString, textX, textY);
-                ctx.shadowBlur = 0;
-
-                // BƯỚC 5: XUẤT ẢNH THÀNH PHẨM
-                const resultDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                resetUI();
-                imgProcessed.src = resultDataUrl;
-                imgProcessed.style.display = 'block';
-                
-                btnDownload.href = resultDataUrl;
-                btnDownload.style.display = 'inline-block';
-                btnFilter.style.display = 'none';
+                let currentText = finalTranscript || interimTranscript;
+                if(currentText.trim() !== "") {
+                    subtitleTxt.innerText = currentText;
+                }
             };
+
+            recognition.onend = function() {
+                if (mediaRecorder && mediaRecorder.state === "recording" && !isUserEditing) {
+                    recognition.start();
+                }
+            };
+        }
+
+        function pauseRecognition() {
+            isUserEditing = true;
+            if (recognition) recognition.stop();
+        }
+
+        function resumeRecognition() {
+            isUserEditing = false;
+            if (mediaRecorder && mediaRecorder.state === "recording" && recognition) {
+                try { recognition.start(); } catch(e) {}
+            }
+        }
+
+        // CHỨC NĂNG VẼ CAMERA + PHỤ ĐỀ LÊN CANVAS ĐỂ ĐÓNG GÓI VIDEO
+        function startCanvasRender() {
+            recordCanvas.width = 640;
+            recordCanvas.height = 480;
+
+            function drawFrame() {
+                if (!mediaRecorder || mediaRecorder.state !== "recording") return;
+
+                // 1. Vẽ hình ảnh camera gốc lên nền canvas
+                canvasCtx.drawImage(preview, 0, 0, recordCanvas.width, recordCanvas.height);
+
+                // 2. Thiết kế định dạng và vẽ phụ đề đè lên canvas
+                const text = subtitleTxt.innerText;
+                canvasCtx.font = "bold 20px Arial, sans-serif";
+                canvasCtx.textAlign = "center";
+                
+                // Đo độ rộng chữ để vẽ khung nền đen phía sau chữ cho dễ đọc
+                const textWidth = canvasCtx.measureText(text).width;
+                
+                canvasCtx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                // Vẽ hộp nền đen che chữ
+                canvasCtx.fillRect((recordCanvas.width - textWidth - 30) / 2, recordCanvas.height - 65, textWidth + 30, 35);
+
+                // Vẽ chữ phụ đề màu trắng lên trên hộp đen
+                canvasCtx.fillStyle = "#ffffff";
+                canvasCtx.fillText(text, recordCanvas.width / 2, recordCanvas.height - 40);
+
+                // Lặp lại liên tục 30 khung hình trên giây để tạo chuyển động mượt mà
+                canvasRenderLoop = requestAnimationFrame(drawFrame);
+            }
+            
+            drawFrame();
+        }
+
+        // BẮT ĐẦU QUAY VIDEO TỪ CANVAS ĐÃ TRỘN CHỮ
+        function startRecording() {
+            recordedChunks = [];
+            subtitleTxt.innerText = "Bắt đầu nói hoặc chạm vào đây để sửa...";
+            btnDownload.style.display = 'none';
+
+            // Kích hoạt vòng lặp xử lý hình ảnh đóng gói
+            startCanvasRender();
+
+            // Lấy luồng video kết hợp từ Canvas (30fps)
+            const canvasStream = recordCanvas.captureStream(30);
+            
+            // Lấy thêm luồng âm thanh từ microphone gốc để ghép vào video canvas
+            const audioTracks = streamObj.getAudioTracks();
+            if (audioTracks.length > 0) {
+                canvasStream.addTrack(audioTracks[0]);
+            }
+
+            // Tiến hành ghi lại luồng đã trộn
+            mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm;codecs=vp9' });
+            
+            mediaRecorder.ondataavailable = function(e) {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = function() {
+                cancelAnimationFrame(canvasRenderLoop);
+                
+                // Đóng gói dữ liệu thành file video hoàn chỉnh tải về máy
+                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                
+                // Thiết lập link tải về cho nút bấm
+                btnDownload.href = url;
+                btnDownload.download = 'video_sub_hoan_chinh.mp4';
+                btnDownload.style.display = 'inline-block';
+            };
+
+            mediaRecorder.start();
+
+            if (recognition && !isUserEditing) recognition.start();
+
+            btnStartRec.style.display = 'none';
+            btnStopRec.style.display = 'inline-block';
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) mediaRecorder.stop();
+            if (recognition) recognition.stop();
+            
+            btnStartRec.style.display = 'inline-block';
+            btnStopRec.style.display = 'none';
         }
     </script>
 </body>
