@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Quay Video Đóng Gói Phụ Đề</title>
+    <title>Quay Video Phụ Đề & Đổi Camera</title>
     <style>
         body {
             background-color: #121212;
@@ -34,7 +34,6 @@
             border: 1px dashed #444;
         }
 
-        /* Khung chứa camera/video */
         .video-container {
             width: 100%;
             max-width: 600px;
@@ -56,7 +55,6 @@
             object-fit: cover;
         }
 
-        /* Vùng phủ phụ đề hiển thị cho người dùng xem lúc quay */
         .subtitle-overlay {
             position: absolute;
             bottom: 30px;
@@ -89,7 +87,6 @@
             box-shadow: 0 0 10px rgba(0, 132, 255, 0.5);
         }
 
-        /* Hệ thống nút bấm */
         .controls {
             margin-top: 25px;
             display: flex;
@@ -118,6 +115,8 @@
         .btn-start { background-color: #0084ff; border-color: #0084ff; }
         .btn-start:hover { background-color: #006cd2; }
 
+        .btn-toggle-cam { background-color: #333; border-color: #555; }
+
         .btn-record { background-color: #e50914; border-color: #e50914; }
         .btn-record:hover { background-color: #b80710; }
 
@@ -129,8 +128,8 @@
 </head>
 <body>
 
-    <h2>QUAY VIDEO + IN CHỮ PHỤ ĐỀ 🎙️</h2>
-    <div class="tip-text">💡 Bạn có thể bấm thẳng vào phụ đề để sửa lại chữ lỗi trước khi bấm dừng quay!</div>
+    <h2>QUAY VIDEO PRO + IN PHỤ ĐỀ 🎙️</h2>
+    <div class="tip-text">💡 Bạn có thể bấm đổi camera trước/sau hoặc chọn sửa lại chữ phụ đề bất kỳ lúc nào!</div>
 
     <div class="video-container">
         <video id="preview" autoplay playsinline muted></video>
@@ -141,6 +140,7 @@
 
     <div class="controls">
         <button id="btn-open" class="btn btn-start" onclick="openCamera()">Mở Camera 📷</button>
+        <button id="btn-switch" class="btn btn-toggle-cam" onclick="switchCamera()" style="display: none;">Đổi Camera 🔄</button>
         <button id="btn-start-rec" class="btn btn-record" onclick="startRecording()" style="display: none;">Bắt Đầu Quay 🔴</button>
         <button id="btn-stop-rec" class="btn btn-stop" onclick="stopRecording()" style="display: none;">Dừng Quay & Lưu ⏹️</button>
         <a id="btn-download" class="btn btn-download" style="display: none;">Tải Video Có Chữ Về Máy 💾</a>
@@ -155,6 +155,9 @@
         let recognition;
         let isUserEditing = false;
         let canvasRenderLoop;
+        
+        // Quản lý trạng thái camera hiện tại: 'user' (trước) hoặc 'environment' (sau)
+        let currentFacingMode = 'user'; 
 
         const preview = document.getElementById('preview');
         const subtitleTxt = document.getElementById('subtitle');
@@ -162,32 +165,64 @@
         const canvasCtx = recordCanvas.getContext('2d');
         
         const btnOpen = document.getElementById('btn-open');
+        const btnSwitch = document.getElementById('btn-switch');
         const btnStartRec = document.getElementById('btn-start-rec');
         const btnStopRec = document.getElementById('btn-stop-rec');
         const btnDownload = document.getElementById('btn-download');
 
+        // 1. HÀM MỞ CAMERA (CẬP NHẬT ĐỘNG THEO FACING MODE)
         async function openCamera() {
+            // Tắt luồng camera cũ (nếu có) trước khi mở luồng mới
+            stopExistingStream();
+
             try {
                 streamObj = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480, facingMode: 'user' },
+                    video: { facingMode: currentFacingMode },
                     audio: true
                 });
                 
                 preview.srcObject = streamObj;
                 btnOpen.style.display = 'none';
+                btnSwitch.style.display = 'inline-block';
                 btnStartRec.style.display = 'inline-block';
                 
-                initSpeechRecognition();
+                // Khởi tạo công cụ nhận diện giọng nói nếu chưa có
+                if (!recognition) {
+                    initSpeechRecognition();
+                }
             } catch (err) {
-                alert("Không thể truy cập Camera/Microphone!");
+                alert("Không thể truy cập Camera/Microphone. Vui lòng kiểm tra quyền trình duyệt!");
                 console.error(err);
             }
         }
 
+        // HÀM ĐỔI CAMERA TRƯỚC VÀ SAU
+        async function switchCamera() {
+            // Nếu đang gõ hoặc đang quay thì không cho đổi đột ngột tránh lỗi luồng ghi hình
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                alert("Vui lòng dừng quay video trước khi đổi camera!");
+                return;
+            }
+
+            // Đảo ngược trạng thái camera
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            
+            // Khởi động lại camera với luồng cấu hình mới
+            await openCamera();
+        }
+
+        function stopExistingStream() {
+            if (streamObj) {
+                streamObj.getTracks().forEach(track => track.stop());
+                streamObj = null;
+            }
+        }
+
+        // 2. CẤU HÌNH NHẬN DIỆN GIỌNG NÓI TIẾNG VIỆT
         function initSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                subtitleTxt.innerText = "Trình duyệt không hỗ trợ nhận diện (Hãy dùng Google Chrome).";
+                subtitleTxt.innerText = "Trình duyệt của bạn chặn hoặc không hỗ trợ mic phụ đề tự động (Khuyên dùng Chrome).";
                 return;
             }
 
@@ -218,14 +253,14 @@
 
             recognition.onend = function() {
                 if (mediaRecorder && mediaRecorder.state === "recording" && !isUserEditing) {
-                    recognition.start();
+                    try { recognition.start(); } catch(e) {}
                 }
             };
         }
 
         function pauseRecognition() {
             isUserEditing = true;
-            if (recognition) recognition.stop();
+            if (recognition) { try { recognition.stop(); } catch(e) {} }
         }
 
         function resumeRecognition() {
@@ -235,89 +270,113 @@
             }
         }
 
-        // CHỨC NĂNG VẼ CAMERA + PHỤ ĐỀ LÊN CANVAS ĐỂ ĐÓNG GÓI VIDEO
+        // 3. VẼ CAMERA + CHỮ LÊN CANVAS
         function startCanvasRender() {
-            recordCanvas.width = 640;
-            recordCanvas.height = 480;
+            recordCanvas.width = preview.videoWidth || 640;
+            recordCanvas.height = preview.videoHeight || 480;
 
             function drawFrame() {
                 if (!mediaRecorder || mediaRecorder.state !== "recording") return;
 
-                // 1. Vẽ hình ảnh camera gốc lên nền canvas
-                canvasCtx.drawImage(preview, 0, 0, recordCanvas.width, recordCanvas.height);
+                // Xử lý lật hình ảnh nếu đang xài camera trước (selfie) cho đỡ bị ngược chữ
+                if (currentFacingMode === 'user') {
+                    canvasCtx.save();
+                    canvasCtx.translate(recordCanvas.width, 0);
+                    canvasCtx.scale(-1, 1);
+                    canvasCtx.drawImage(preview, 0, 0, recordCanvas.width, recordCanvas.height);
+                    canvasCtx.restore();
+                } else {
+                    canvasCtx.drawImage(preview, 0, 0, recordCanvas.width, recordCanvas.height);
+                }
 
-                // 2. Thiết kế định dạng và vẽ phụ đề đè lên canvas
                 const text = subtitleTxt.innerText;
-                canvasCtx.font = "bold 20px Arial, sans-serif";
+                const fontSize = Math.max(16, Math.floor(recordCanvas.width * 0.045));
+                canvasCtx.font = `bold ${fontSize}px Arial, sans-serif`;
                 canvasCtx.textAlign = "center";
                 
-                // Đo độ rộng chữ để vẽ khung nền đen phía sau chữ cho dễ đọc
                 const textWidth = canvasCtx.measureText(text).width;
+                const padding = 20;
                 
-                canvasCtx.fillStyle = "rgba(0, 0, 0, 0.75)";
                 // Vẽ hộp nền đen che chữ
-                canvasCtx.fillRect((recordCanvas.width - textWidth - 30) / 2, recordCanvas.height - 65, textWidth + 30, 35);
+                canvasCtx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                canvasCtx.fillRect(
+                    (recordCanvas.width - textWidth - padding) / 2, 
+                    recordCanvas.height - (fontSize * 2.5), 
+                    textWidth + padding, 
+                    fontSize * 1.5
+                );
 
-                // Vẽ chữ phụ đề màu trắng lên trên hộp đen
+                // Vẽ chữ trắng lên trên
                 canvasCtx.fillStyle = "#ffffff";
-                canvasCtx.fillText(text, recordCanvas.width / 2, recordCanvas.height - 40);
+                canvasCtx.fillText(text, recordCanvas.width / 2, recordCanvas.height - (fontSize * 1.4));
 
-                // Lặp lại liên tục 30 khung hình trên giây để tạo chuyển động mượt mà
                 canvasRenderLoop = requestAnimationFrame(drawFrame);
             }
             
             drawFrame();
         }
 
-        // BẮT ĐẦU QUAY VIDEO TỪ CANVAS ĐÃ TRỘN CHỮ
+        // 4. BẮT ĐẦU QUAY VIDEO
         function startRecording() {
             recordedChunks = [];
-            subtitleTxt.innerText = "Bắt đầu nói hoặc chạm vào đây để sửa...";
+            subtitleTxt.innerText = "Đang quay... Bạn có thể nói hoặc sửa chữ tại đây!";
             btnDownload.style.display = 'none';
+            btnSwitch.style.display = 'none'; // Ẩn nút đổi cam khi đang tiến hành quay phim
 
-            // Kích hoạt vòng lặp xử lý hình ảnh đóng gói
             startCanvasRender();
 
-            // Lấy luồng video kết hợp từ Canvas (30fps)
-            const canvasStream = recordCanvas.captureStream(30);
+            const canvasStream = recordCanvas.captureStream(25);
             
-            // Lấy thêm luồng âm thanh từ microphone gốc để ghép vào video canvas
             const audioTracks = streamObj.getAudioTracks();
             if (audioTracks.length > 0) {
                 canvasStream.addTrack(audioTracks[0]);
             }
 
-            // Tiến hành ghi lại luồng đã trộn
-            mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm;codecs=vp9' });
+            let options = {};
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                options = { mimeType: 'video/webm;codecs=vp9' };
+            } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                options = { mimeType: 'video/webm' };
+            } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                options = { mimeType: 'video/mp4' }; 
+            }
+
+            try {
+                mediaRecorder = new MediaRecorder(canvasStream, options);
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(canvasStream);
+            }
             
             mediaRecorder.ondataavailable = function(e) {
-                if (e.data.size > 0) recordedChunks.push(e.data);
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
             };
 
             mediaRecorder.onstop = function() {
                 cancelAnimationFrame(canvasRenderLoop);
                 
-                // Đóng gói dữ liệu thành file video hoàn chỉnh tải về máy
-                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                const extension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+                const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
                 const url = URL.createObjectURL(blob);
                 
-                // Thiết lập link tải về cho nút bấm
                 btnDownload.href = url;
-                btnDownload.download = 'video_sub_hoan_chinh.mp4';
+                btnDownload.download = `video_chinh_sua_phude.${extension}`;
                 btnDownload.style.display = 'inline-block';
+                btnSwitch.style.display = 'inline-block'; // Hiện lại nút đổi cam sau khi quay xong
             };
 
-            mediaRecorder.start();
+            mediaRecorder.start(10);
 
-            if (recognition && !isUserEditing) recognition.start();
+            if (recognition && !isUserEditing) {
+                try { recognition.start(); } catch(e) {}
+            }
 
             btnStartRec.style.display = 'none';
             btnStopRec.style.display = 'inline-block';
         }
 
         function stopRecording() {
-            if (mediaRecorder) mediaRecorder.stop();
-            if (recognition) recognition.stop();
+            if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+            if (recognition) { try { recognition.stop(); } catch(e) {} }
             
             btnStartRec.style.display = 'inline-block';
             btnStopRec.style.display = 'none';
